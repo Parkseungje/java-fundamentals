@@ -15,6 +15,17 @@ repositories {
     mavenCentral()
 }
 
+// 소스(UTF-8) ↔ 콘솔(Windows 기본 CP949) 인코딩 불일치로 한글 출력이 깨지는 문제 방지
+compileJava {
+    options.encoding = 'UTF-8'
+}
+compileTestJava {
+    options.encoding = 'UTF-8'
+}
+tasks.withType(JavaExec).configureEach {
+    jvmArgs += ['-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8']
+}
+
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
