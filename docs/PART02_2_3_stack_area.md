@@ -59,6 +59,22 @@ java -cp build/classes/java/main com.study.part02_jvm.s03_stack_area.Example2_St
 java -cp build/classes/java/main com.study.part02_jvm.s03_stack_area.Example3_ThreadLocalStack
 ```
 
+현재 JVM의 스레드 스택 크기 설정값을 확인 (PowerShell):
+
+```powershell
+java -XX:+PrintFlagsFinal -version | Select-String ThreadStackSize
+```
+
+출력 예: `intx ThreadStackSize = 0 {pd product} {default}`
+- 값이 `0`이면 "플랫폼(OS) 기본값을 사용한다"는 뜻이다. 0은 크기가 0이라는 게 아니라
+  "JVM이 OS가 정한 기본 스택 크기에 맡긴다"는 의미로, 보통 512KB~1MB 수준이다.
+- `-Xss`로 명시적으로 지정하면 그 값이 반영된다. 예를 들어 아래처럼 주면 ThreadStackSize가
+  512KB(=524288)로 찍힌다:
+
+```powershell
+java -Xss512k -XX:+PrintFlagsFinal -version | Select-String ThreadStackSize
+```
+
 스택 크기를 줄여 StackOverflow 깊이가 달라지는지 확인 (선택) — 아래 한 줄만 실행:
 
 ```bash
