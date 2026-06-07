@@ -15,6 +15,9 @@ docs/
 
 PART 번호와 패키지명은 커리큘럼 문서의 PART 구분과 1:1 대응한다.
 
+> 📌 전체 커리큘럼 원본: [`../master_curriculum.md`](../master_curriculum.md) (`C:\develop\study\master_curriculum.md`)
+> — `spring-fundamentals`와 공유하는 참고 문서이므로 이 프로젝트 내부로 복사하지 않는다.
+
 ## 실행 / 도구
 
 ```bash

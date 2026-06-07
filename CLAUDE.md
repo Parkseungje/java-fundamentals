@@ -2,6 +2,12 @@
 
 이 프로젝트에서 작업할 때 따를 컨벤션.
 
+## 참고 문서
+전체 커리큘럼 원본은 `../master_curriculum.md` (`C:\develop\study\master_curriculum.md`)에 있다.
+이 프로젝트는 그중 PART 1~7을 다룬다. PART 번호·소단원 번호·"자기 점검" 질문은
+모두 이 파일을 기준으로 하며, docs/ 노트 작성 시에도 이 문서의 구조(고통→해결, 자기 점검)를 따른다.
+이 파일은 두 프로젝트(java-fundamentals, spring-fundamentals)가 공유하므로 프로젝트 내부로 복사하지 않는다.
+
 ## 목적
 "자바 → 스프링 통합 마스터 커리큘럼"의 PART 1~7을 코드로 직접 검증한다.
 이론을 읽는 데서 그치지 않고, **터미널 도구(javap, jstack, jcmd, GC 로그 등)로 실제 동작을 눈으로 확인**하는 것이 핵심.
