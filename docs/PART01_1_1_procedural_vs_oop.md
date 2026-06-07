@@ -1,6 +1,8 @@
-# PART 1 — 객체지향(OOP) 기초
+# PART 1 — 객체지향(OOP) 기초: 1.1 절차지향 → 객체지향 (왜 OOP가 등장했나)
 
-## 1.1 절차지향 → 객체지향 (왜 OOP가 등장했나)
+> 이 문서는 커리큘럼 PART 1의 소단원 중 **1.1 절차지향 → 객체지향**만 다룬다.
+> 1.2 이후(클래스와 객체, 다형성, 추상화, SOLID 등)는 학습이 진행되는 대로
+> `PART01_1_2_xxx.md`처럼 소단원별 문서로 별도 작성한다.
 
 ### 실습 코드
 - `com.study.part01_oop.s01_procedural_vs_oop`
@@ -36,30 +38,3 @@ java -cp build/classes/java/main com.study.part01_oop.s01_procedural_vs_oop.Proc
         "캡슐화·상속·다형성을 **언어가 강제하는가, 관례에 맡기는가**"의 차이를 직접 정리한다.
   - 힌트: `CarData.speed = 9999`는 컴파일이 되지만 `Car.speed = 9999`는 안 된다 — 이 차이가
     "흉내"와 "언어 차원의 보장"의 경계선이다.
-
----
-
-## PART 1 공통 실습 코드
-- `com.study.part01_oop.Animal` / `Dog` / `Cat` / `PolymorphismDemo`
-
-## 실행
-```bash
-./gradlew compileJava
-java -cp build/classes/java/main com.study.part01_oop.PolymorphismDemo
-```
-
-## 자기 점검 — 실험으로 확인하기
-
-### Q. 캐스팅 전에 instanceof 검사가 왜 필요한가?
-- [ ] `PolymorphismDemo`에서 `instanceof Dog d` 체크를 제거하고 무조건
-      `((Dog) a).fetch()`로 캐스팅했을 때 `Cat` 인스턴스에서 어떤 예외가
-      발생하는지 직접 확인하고 예외 메시지를 여기 기록한다.
-
-### Q. C 구조체로 OOP를 흉내낼 수 있지만 자바와의 결정적 차이는?
-- (직접 정리)
-
-## javap로 확인해보기 (PART 2 예고)
-```bash
-javap -c build/classes/java/main/com/study/part01_oop/PolymorphismDemo.class
-```
-- `instanceof` + 패턴 매칭이 바이트코드 레벨에서 어떤 명령으로 컴파일되는지 확인
