@@ -49,13 +49,19 @@ Stack 공간은 **유한**하다. 종료 조건 없는 재귀처럼 프레임을
 | `Example3_ThreadLocalStack` | 지역변수는 스레드 안전? | 4스레드 동시 실행: 지역변수 vs static |
 
 ### 실행
+아래 명령은 모두 **프로젝트 루트(`C:\develop\study\java-fundamentals`)에서 실행**한다.
+(docs 폴더 등 다른 위치에서 실행하면 `build/...` 상대경로를 못 찾아 에러가 난다. 그럴 땐 `cd ..`로 루트로 이동)
+
 ```bash
 ./gradlew compileJava
 java -cp build/classes/java/main com.study.part02_jvm.s03_stack_area.Example1_StackFrameLIFO
 java -cp build/classes/java/main com.study.part02_jvm.s03_stack_area.Example2_StackOverflow
 java -cp build/classes/java/main com.study.part02_jvm.s03_stack_area.Example3_ThreadLocalStack
+```
 
-# 스택 크기를 줄여 StackOverflow 깊이가 달라지는지 확인 (선택)
+스택 크기를 줄여 StackOverflow 깊이가 달라지는지 확인 (선택) — 아래 한 줄만 실행:
+
+```bash
 java -Xss256k -cp build/classes/java/main com.study.part02_jvm.s03_stack_area.Example2_StackOverflow
 ```
 

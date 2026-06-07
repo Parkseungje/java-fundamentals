@@ -54,6 +54,9 @@ GC가 회수하면서 함께 사라진다(GC는 PART 3).
 | `Example3_StaticVariable` | 클래스 변수 / Method Area | 객체 3개 생성 → 공유 여부 |
 
 ### 실행
+아래 명령은 모두 **프로젝트 루트(`C:\develop\study\java-fundamentals`)에서 실행**한다.
+(docs 폴더 등 다른 위치에서 실행하면 `build/...` 상대경로를 못 찾아 에러가 난다. 그럴 땐 `cd ..`로 루트로 이동)
+
 ```bash
 ./gradlew compileJava
 java -cp build/classes/java/main com.study.part02_jvm.s01_variable_types.Example1_LocalVariable
@@ -72,8 +75,10 @@ java -cp build/classes/java/main com.study.part02_jvm.s01_variable_types.Example
 ### 터미널로 직접 확인 — `javap`로 바이트코드 들여다보기
 저장 위치 차이는 단순히 "동작"만이 아니라 **바이트코드 명령어 자체**로도 구분된다.
 
+프로젝트 루트에서 실행한다 (`-p`: private 포함, `-c`: 바이트코드 출력).
+명령은 아래 한 줄만 복사해 붙여넣는다(설명용 주석 줄은 함께 붙여넣지 말 것).
+
 ```bash
-# 컴파일된 .class를 역어셈블 (-p: private 포함, -c: 바이트코드 출력)
 javap -p -c build/classes/java/main/com/study/part02_jvm/s01_variable_types/Counter.class
 ```
 
