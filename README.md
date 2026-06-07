@@ -43,7 +43,7 @@ jstack <PID>
 
 ## 진행 상황
 
-- [ ] PART 1 객체지향(OOP) 기초
+- [x] PART 1 객체지향(OOP) 기초 (1.1~1.8 완료)
 - [ ] PART 2 JVM 메모리 모델과 실행 원리
 - [ ] PART 3 GC
 - [ ] PART 4 문자열과 컬렉션
