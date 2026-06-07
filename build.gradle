@@ -1,0 +1,33 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.study'
+version = '1.0-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.assertj:assertj-core:3.25.3'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// 바이트코드 확인용: ./gradlew printClassFiles 후 javap -c -v 로 직접 분석
+tasks.register('printClassFiles') {
+    doLast {
+        println "Class files: ${layout.buildDirectory.dir('classes/java/main').get()}"
+    }
+}
