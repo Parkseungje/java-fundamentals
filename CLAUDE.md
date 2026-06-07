@@ -30,6 +30,14 @@
   2. 자기 점검 질문에 대한 본인의 답
   3. 예상과 다르게 동작한 부분이 있다면 기록
 
+## 자바 버전 주의
+- 이 프로젝트는 **Java 21** toolchain으로 고정되어 있다 (`build.gradle`의 `JavaLanguageVersion.of(21)`).
+- 커리큘럼 예제 중에는 **자바 버전에 따라 문법·동작이 달라지는 부분**이 섞여 있다
+  (예: `instanceof` 패턴 매칭은 Java 16+, 가상 스레드는 Java 21+, switch 패턴 매칭 등).
+- 새 예제 코드를 작성할 때는 "이 기능이 어느 버전부터 가능한지"를 확인하고,
+  버전 의존적인 내용이면 코드 주석 또는 docs에 **"Java 21 기준"**임을 명시한다.
+  다른 버전으로 검증해야 하는 경우 toolchain 값을 바꿔 별도로 실행하고 차이를 기록한다.
+
 ## 빌드/테스트
 - Gradle (Groovy DSL), JUnit 5 + AssertJ
 - `./gradlew test`로 실행, 새 PART 추가 시 build.gradle 의존성은 최소한으로 유지 (순수 자바 학습이 목적)
