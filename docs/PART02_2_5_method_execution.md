@@ -102,8 +102,40 @@ java -cp build/classes/java/main com.study.part02_jvm.s05_method_execution.Examp
 프로젝트 루트에서 실행 (`-p`: private 포함, `-c`: 바이트코드):
 
 ```bash
-javap -p -c build/classes/java/main/com/study/part02_jvm/s05_method_execution/Example3_InvokeInstructions.class
+javap "-J-Dstdout.encoding=UTF-8" -p -c build/classes/java/main/com/study/part02_jvm/s05_method_execution/Example3_InvokeInstructions.class
 ```
+
+> **⚠️ 한글 깨짐 방지** — javap는 클래스의 문자열 상수(한글 포함)를 올바르게 읽지만, 출력 인코딩이
+> 터미널과 어긋나면 한글이 깨진다. 두 가지가 맞아야 한다: **① javap가 UTF-8로 내보내기**(JDK 18+ &
+> `-Dstdout.encoding=UTF-8`), **② 터미널이 UTF-8로 디코딩**. 환경별로 정리하면:
+>
+> **공통 규칙**
+> - `-J` 플래그는 **반드시 따옴표**로 묶는다 — `"-J-Dstdout.encoding=UTF-8"`. 안 묶으면 셸(특히
+>   PowerShell)이 `.` 앞에서 인자를 쪼개 `-p -c`까지 클래스명으로 오인한다(바이트코드가 안 나옴).
+> - `stdout.encoding`은 **JDK 18+ 전용**. 회사 PATH 기본이 JDK 17이면 무시되므로, 이 프로젝트 빌드용
+>   JDK 21 javap를 써야 한다. `javap -version`으로 먼저 확인.
+>
+> **🏢 회사 — IntelliJ 내장 터미널(PowerShell) + PATH 기본 JDK 17**
+> PowerShell은 외부 프로그램 출력을 `[Console]::OutputEncoding`(한국어 Windows 기본 MS949)으로
+> 디코딩하므로, 그것도 UTF-8로 바꿔야 한다. 세 줄(앞 두 줄은 세션당 1회):
+> ```powershell
+> $env:PATH = "C:\Users\a0108\.jdks\dragonwell-21.0.11\bin;$env:PATH"   # javap를 21로
+> [Console]::OutputEncoding = [System.Text.Encoding]::UTF8              # PowerShell 디코딩을 UTF-8로
+> javap "-J-Dstdout.encoding=UTF-8" -p -c build\classes\java\main\com\study\part02_jvm\s05_method_execution\Example3_InvokeInstructions.class
+> ```
+> ※ `export`(bash)·`| cat`(=Get-Content)은 PowerShell에서 안 먹으니 쓰지 말 것.
+> ※ `[Console]::OutputEncoding` 한 줄을 `$PROFILE`에 넣으면 영구 적용된다.
+>
+> **🏠 집 — Git Bash 등 UTF-8 터미널 + PATH 기본 JDK 21**
+> 터미널이 이미 UTF-8이면 따옴표만 붙이면 끝:
+> ```bash
+> javap "-J-Dstdout.encoding=UTF-8" -p -c build/classes/java/main/com/study/part02_jvm/s05_method_execution/Example3_InvokeInstructions.class
+> ```
+>
+> **어느 환경이든 확실한 방법** — 파일로 빼서 에디터(UTF-8)로 본다(터미널 인코딩 무관):
+> JDK 21 javap로 `... > build/javap_out.txt` 후 IntelliJ에서 열기 (`build/`는 gitignore라 커밋 안 됨).
+>
+> 같은 이유로 다른 단원의 `javap` 명령도 한글이 깨지면 동일하게 처리한다.
 
 main 바이트코드에서 다음 명령들이 보인다:
 
