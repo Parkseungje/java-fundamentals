@@ -1,0 +1,119 @@
+# PART 4 — 문자열과 컬렉션: 4.1 String과 Constant Pool
+
+> 이 문서는 커리큘럼 PART 4의 소단원 중 **4.1 String과 Constant Pool**을 다룬다.
+> PART 2.7에서 본 "상수 풀"이 문자열에서 어떻게 동작하는지, 그리고 String 불변성을 본다.
+
+---
+
+## 1. 학습 내용 — String Pool과 불변성
+
+### 문자열 리터럴과 String Constant Pool
+문자열 리터럴(`"hello"`)은 **String Constant Pool**이라는 특별한 영역에 저장된다. 같은 값의
+리터럴을 또 쓰면 새로 만들지 않고 **풀에 있는 것을 재사용**한다. 그래서 `"abc" == "abc"`는 같은
+객체라 `true`다.
+
+반면 `new String("abc")`는 풀을 무시하고 **Heap에 무조건 새 객체**를 만든다. 값은 같지만 다른
+객체이므로 `"abc" == new String("abc")`는 `false`다. `intern()`을 호출하면 "이 문자열을 풀에
+등록(이미 있으면 풀의 것 반환)"하므로 풀 객체와 `==`가 된다.
+
+### == vs equals()
+- **`==`** : 두 변수가 **같은 객체(주소)** 를 가리키는지 비교.
+- **`equals()`** : 두 문자열의 **값(내용)** 이 같은지 비교.
+
+문자열 비교는 거의 항상 `equals()`를 써야 한다. `==`로 비교하면 "리터럴이냐 new냐"에 따라 결과가
+달라져 버그가 된다.
+
+### String은 불변(immutable)
+String은 한 번 만들어지면 **내부 내용을 절대 바꿀 수 없다.** `toUpperCase()`, `concat()`,
+`replace()` 같은 "수정처럼 보이는" 메서드는 사실 원본을 그대로 두고 **새 String을 만들어 반환**한다.
+
+불변성의 이점:
+- **스레드 안전 / 안전한 공유**: 아무도 내용을 못 바꾸니 여러 변수·스레드가 공유해도 간섭이 없다.
+- **보안**: 한 번 검증한 문자열(파일 경로·URL 등)이 나중에 몰래 바뀔 수 없다.
+- **캐싱**: 값이 안 변하니 `hashCode`를 한 번 계산해 캐싱해두고 재사용한다.
+- **HashMap 키로 안전**: key의 내용이 안 바뀌어 hashCode가 고정 → 넣은 값을 항상 다시 찾을 수 있다.
+
+단점은, 루프에서 `+=`로 문자열을 이어붙이면 매번 새 객체가 생겨 비효율적이라는 것 — 이를 푸는
+StringBuilder는 4.2에서 다룬다.
+
+---
+
+## 2. 실습으로 확인하기
+
+> - **가설 1**: 리터럴은 풀에서 재사용(==true), new String은 새 객체(==false), equals는 값 비교(true).
+> - **가설 2**: String 수정 메서드는 원본을 안 바꾸고 새 객체를 반환한다.
+> - **가설 3**: 불변성 덕분에 안전한 공유·HashMap 키 안정성·hashCode 캐싱이 가능하다.
+
+### 예시 3개 — 각 예시가 답하는 질문
+
+| 예시 | 답하는 질문 | 시나리오 |
+|---|---|---|
+| `Example1_StringPoolAndIdentity` | ==와 equals 차이? 풀 재사용? | 리터럴 / new / intern 비교 |
+| `Example2_Immutability` | 수정 메서드는 원본을 바꾸나? | toUpperCase / concat |
+| `Example3_ImmutabilityBenefits` | 불변이면 뭐가 좋나? | 공유 / Map 키 / hashCode |
+
+### 실행
+아래 명령은 모두 **프로젝트 루트(`C:\develop\study\java-fundamentals`)에서 실행**한다.
+(docs 폴더 등 다른 위치에서 실행하면 `build/...` 상대경로를 못 찾아 에러가 난다. 그럴 땐 `cd ..`로 루트로 이동)
+
+```bash
+./gradlew compileJava
+java -cp build/classes/java/main com.study.part04_collections.s01_string_pool.Example1_StringPoolAndIdentity
+java -cp build/classes/java/main com.study.part04_collections.s01_string_pool.Example2_Immutability
+java -cp build/classes/java/main com.study.part04_collections.s01_string_pool.Example3_ImmutabilityBenefits
+```
+
+### 실행 결과 — 가설과 실제 비교
+
+**예시 1 (String Pool / 동일성)** — 가설 1.
+
+| 비교 | 결과 | 의미 |
+|---|---|---|
+| `a == b` (둘 다 리터럴 "abc") | true | 풀에서 재사용 → 같은 객체 |
+| `a == c` (c = new String) | false | c는 Heap의 새 객체 |
+| `a.equals(c)` | true | 값은 같음 |
+| `a == d` (d = c.intern()) | true | intern이 풀 객체 반환 |
+
+→ **자기 점검 답**: `a="abc"; b=new String("abc")`일 때 `a==b`는 false(다른 객체), `a.equals(b)`는
+true(값 동일). 문자열 비교는 equals()로! ✅
+
+**예시 2 (불변성)** — 가설 2.
+
+| 동작 | 반환값 | 원본 s |
+|---|---|---|
+| `s.toUpperCase()` | "HELLO" (새 객체, `s==upper` false) | "hello" (그대로) |
+| `s.concat(" world")` | "hello world" | "hello" (그대로) |
+
+→ 수정 메서드는 원본을 안 바꾸고 새 객체를 반환한다. String은 불변. ✅
+
+**예시 3 (불변성 이점)** — 가설 3.
+
+| 이점 | 확인 결과 |
+|---|---|
+| 안전한 공유 | 메서드에 넘겨 "수정"해도 원본 `shared`는 훼손 안 됨 |
+| HashMap 키 안정성 | `put("user:1",100)` → `get("user:1")` = 100 (키 내용 불변이라 항상 찾힘) |
+| hashCode 캐싱 | 같은 문자열 hashCode 두 번 호출 → 동일값 (`-1439763676`) |
+
+→ 불변성이 공유 안전성·자료구조 신뢰성·성능 이점을 만든다. ✅
+
+### 세 예시를 관통하는 결론
+String은 리터럴을 풀에서 재사용해 메모리를 아끼고(예시1), 한 번 만들면 내용을 바꿀 수 없는
+불변 객체다(예시2). 이 불변성이 안전한 공유·HashMap 키 안정성·hashCode 캐싱이라는 광범위한
+이점을 만든다(예시3). 단 불변이라 "수정"이 매번 새 객체를 만드므로, 반복적인 문자열 조립에는
+StringBuilder가 필요하다(4.2). 그리고 문자열 비교는 객체 동일성(==)이 아니라 값(equals())으로 해야 한다.
+
+---
+
+## 3. 자기 점검
+
+- **Q. `String a="abc"; String b=new String("abc");`일 때 `a.equals(b)`와 `a==b`의 결과는?**
+  - 내 답: `a==b`는 false(b는 new로 만든 Heap의 다른 객체), `a.equals(b)`는 true(값이 같음).
+    (Example1의 a==c, a.equals(c) 결과가 근거)
+
+- **Q. String이 불변이라서 좋은 점 3가지는?**
+  - 내 답: ① 안전한 공유(스레드 안전·보안) ② HashMap 키 안정성(hashCode 고정) ③ hashCode 캐싱.
+    (Example3)
+
+- **Q. (추가 실험) `"a" + "b" + "c"` (리터럴만 연결)는 컴파일 시 어떻게 될까?**
+  - 컴파일러가 상수 폴딩으로 `"abc"` 하나로 합쳐 풀에 넣는다. `("a"+"b"+"c") == "abc"`가 true인지
+    직접 확인하고, 변수로 연결할 때(`x + "b"`)와 어떻게 다른지 javap로 살펴본다. (2.7 상수 풀과 연결)
