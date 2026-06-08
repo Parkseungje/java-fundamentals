@@ -22,16 +22,24 @@ package com.study.part02_jvm.s04_pass_by_value;
  */
 public class Example2_ObjectReferenceCopy {
 
+    // 객체의 '주소값'을 눈으로 보기 위한 대용물. (실제 메모리 주소는 못 보지만, identityHashCode는
+    // 객체마다 고유해서 "같은 객체인가/다른 객체인가"를 구분하는 데 쓸 수 있다. 시각화의 0x100/0x200 역할)
+    static String addr(Box b) {
+        return "0x" + Integer.toHexString(System.identityHashCode(b));
+    }
+
     // (a) 복사된 주소가 가리키는 같은 객체의 필드를 변경 -> 호출자에 반영됨
     static void mutateField(Box b) {
+        System.out.println("  mutateField 안: 받은 주소 b=" + addr(b) + " (호출자 box와 같은 주소 = 같은 객체)");
         b.value = 20;
         System.out.println("  mutateField 안: " + b + " (같은 객체의 필드를 바꿈)");
     }
 
     // (b) 매개변수(지역 변수)에 새 객체를 대입 -> 이 프레임의 지역 변수만 바뀜, 호출자 무관
     static void reassign(Box b) {
+        System.out.println("  reassign 안: 받은 주소 b=" + addr(b) + " (대입 전, 호출자 box와 같은 주소)");
         b = new Box(30); // b는 '복사된 주소'. 새 주소를 넣어도 호출자의 변수와는 끊긴다.
-        System.out.println("  reassign 안: " + b + " (지역 변수 b만 새 객체를 가리킴)");
+        System.out.println("  reassign 안: 대입 후 b=" + addr(b) + " " + b + " (지역 변수 b만 새 객체를 가리킴)");
     }
 
     public static void main(String[] args) {
@@ -39,20 +47,20 @@ public class Example2_ObjectReferenceCopy {
         System.out.println();
 
         Box box = new Box(10);
-        System.out.println("처음: " + box);
+        System.out.println("처음: " + box + " 주소 box=" + addr(box));
 
         System.out.println();
         System.out.println("(a) mutateField(box) 호출:");
         mutateField(box);
-        System.out.println("호출 후 box = " + box + "  <- 20으로 바뀜 (같은 객체의 필드라 반영됨)");
+        System.out.println("호출 후 box = " + box + " 주소 box=" + addr(box) + "  <- 20으로 바뀜 (같은 객체의 필드라 반영됨)");
 
         System.out.println();
         System.out.println("(b) reassign(box) 호출:");
         reassign(box);
-        System.out.println("호출 후 box = " + box + "  <- 여전히 20 (재할당은 호출자에 반영 안 됨)");
+        System.out.println("호출 후 box = " + box + " 주소 box=" + addr(box) + "  <- 여전히 20, 주소도 그대로 (재할당은 호출자에 반영 안 됨)");
 
         System.out.println();
-        System.out.println("=> 복사되는 건 '주소값'이다. 같은 객체의 필드 변경(a)은 보이지만,");
-        System.out.println("   매개변수에 새 객체 대입(b)은 호출자와 무관 = 자바는 pass by value.");
+        System.out.println("=> 복사되는 건 '주소값'이다. (a)는 box와 b의 주소가 같아 필드 변경이 보이고,");
+        System.out.println("   (b)는 b만 새 주소로 바뀔 뿐 호출자 box의 주소는 그대로 = 자바는 pass by value.");
     }
 }
