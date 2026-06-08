@@ -34,6 +34,34 @@ Queue 연산은 실패할 수 있다(빈 큐에서 꺼내기, 가득 찬 큐에 
 - ArrayDeque는 양끝 조작이 되므로, 메서드만 바꾸면 **Queue(FIFO)로도 Stack(LIFO)으로도** 쓸 수 있다.
   - Queue처럼: `offerLast`(뒤로 넣기) + `pollFirst`(앞에서 빼기) → FIFO
   - Stack처럼: `push`(앞으로 넣기) + `pop`(앞에서 빼기) → LIFO
+
+#### ★ offerLast와 push는 "넣는 순서"가 아니라 "넣는 위치"가 다르다 (헷갈리기 쉬움)
+A, B, C를 같은 순서로 넣어도 둘은 결과가 정반대다. 이유는 **넣는 쪽(끝)이 다르기 때문**이다.
+Deque는 앞(First)과 뒤(Last) 양끝이 있는데:
+- `offerLast(x)` = **뒤(Last)** 에 추가
+- `push(x)` = **앞(First)** 에 추가 (`addFirst`와 같음)
+
+A, B, C를 차례로 넣을 때 내부 배치를 그려보면:
+```
+offerLast (뒤에 차곡차곡)            push (앞에 쌓기)
+  offerLast(A) -> [A]                  push(A) -> [A]
+  offerLast(B) -> [A, B]               push(B) -> [B, A]      (B를 앞에! A가 밀림)
+  offerLast(C) -> [A, B, C]            push(C) -> [C, B, A]   (C를 앞에! 또 밀림)
+                앞 <- ... -> 뒤                     앞 <- ... -> 뒤
+```
+→ 넣은 순서(A,B,C)는 같지만 내부가 `[A,B,C]`(offerLast) vs `[C,B,A]`(push)로 정반대가 된다.
+
+그리고 빼는 것은 **둘 다 앞(First)에서** 뺀다(`pollFirst`, `pop` 모두 앞에서 제거). 빼는 쪽은 같은데
+넣는 쪽이 달라서 최종 결과가 갈린다:
+
+| 방식 | 넣기 | 내부 배치 | 앞에서 빼기 | 결과 |
+|---|---|---|---|---|
+| Queue(FIFO) | offerLast (뒤에) | `[A, B, C]` | A→B→C | **A, B, C** |
+| Stack(LIFO) | push (앞에) | `[C, B, A]` | C→B→A | **C, B, A** |
+
+비유: **offerLast+pollFirst = 줄 서기**(뒤로 와서 줄 서고 앞에서 빠짐 → 먼저 온 사람 먼저, FIFO),
+**push+pop = 접시 쌓기**(위에 얹고 위에서 집음 → 마지막에 얹은 거 먼저, LIFO).
+
 - **권장**: 큐가 필요하면 LinkedList보다 ArrayDeque(배열 기반, 빠르고 캐시 효율 ↑). 스택이 필요해도
   구식 `java.util.Stack`(Vector 기반, 동기화로 느림, 설계 낡음) 대신 ArrayDeque를 쓰는 게 표준 권장이다.
 
