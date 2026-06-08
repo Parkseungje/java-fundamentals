@@ -31,6 +31,26 @@ TreeSet은 Red-Black Tree로 원소를 항상 정렬 상태로 유지한다. 정
 - 생성 시 **Comparator**를 넘기면 원하는 기준(역순 등)으로 정렬.
 - 둘 다 없으면 비교할 수 없어 add 시 **ClassCastException**이 난다.
 
+#### TreeSet의 "기본 순서"란? = 타입의 자연 순서(natural ordering)
+"숫자는 오름차순, 문자열은 사전순"이 따로 정해진 게 아니라, **TreeSet은 원소의 `compareTo()`
+(Comparable의 자연 순서)를 그대로 따른다**. 즉 기본 순서 = "각 타입이 자기 `compareTo()`에 정의해
+둔 자연 순서"이고, 그 자연 순서가 타입마다 이미 정해져 있을 뿐이다.
+
+| 타입 | 자연 순서(compareTo가 정의한 것) | 결과 |
+|---|---|---|
+| Integer, Long, Double 등 숫자 | 값의 대소 비교 | **오름차순** (작은 수 먼저) |
+| String | 한 글자씩 **유니코드 값** 비교 | **사전순** (숫자 < 대문자 < 소문자 < 한글) |
+| Character | 유니코드 값 비교 | 오름차순 |
+| 사용자 정의 클래스 | `Comparable`을 구현해 직접 정의 | 내가 정한 기준 |
+
+정리하면 TreeSet에 "오름차순/사전순"이라는 별도 규칙이 박혀 있는 게 아니다. **그냥 원소의
+`compareTo()`를 호출해 정렬**할 뿐이고, Integer의 compareTo는 오름차순으로, String의 compareTo는
+유니코드 순(사전순)으로 동작하게 만들어져 있어서 그렇게 보이는 것이다. 그래서:
+- 다른 순서를 원하면(역순 등) 생성 시 **Comparator를 넘겨** 자연 순서를 덮어쓴다.
+  예: `new TreeSet<>(Comparator.reverseOrder())` → 내림차순.
+- 사용자 정의 클래스는 자연 순서가 없으므로, Comparable을 구현하거나 Comparator를 줘야 한다
+  (안 그러면 ClassCastException).
+
 (Comparable/Comparator는 PART 5.2에서 자세히 다룬다.)
 
 ### 선택 기준
