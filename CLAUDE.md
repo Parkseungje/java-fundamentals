@@ -73,6 +73,31 @@
   사용자가 블록 전체를 복사하면 주석 줄까지 붙어 들어가 PowerShell에서 에러가 날 수 있다.
   설명이 필요하면 코드블록 '바깥'의 평문으로 적는다.
 
+### javap 한글 깨짐 — 환경별 실행 (회사/집)
+`javap`로 한글이 포함된 바이트코드/상수 풀을 볼 때, **javap 출력 인코딩과 터미널 디코딩이 둘 다
+UTF-8로 맞아야** 한글이 안 깨진다. docs에 javap 명령을 적을 때는 아래 두 환경을 **구분해서** 적는다.
+
+- **🏢 회사 — IntelliJ 내장 터미널(PowerShell), PATH 기본 JDK 17**
+  PowerShell은 외부 프로그램 출력을 `[Console]::OutputEncoding`(한국어 Windows 기본 MS949)으로
+  디코딩하므로 그것도 UTF-8로 바꿔야 한다. 앞 두 줄은 터미널 세션당 1회:
+  ```powershell
+  $env:PATH = "C:\Users\a0108\.jdks\dragonwell-21.0.11\bin;$env:PATH"
+  [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+  javap "-J-Dstdout.encoding=UTF-8" -p -c build\classes\java\main\...\Xxx.class
+  ```
+- **🏠 집 — Git Bash 등 UTF-8 터미널, PATH 기본 JDK 21**
+  ```bash
+  javap "-J-Dstdout.encoding=UTF-8" -p -c build/classes/java/main/.../Xxx.class
+  ```
+
+규칙 3가지:
+1. `-J` 플래그는 **반드시 따옴표**로 묶는다(`"-J-Dstdout.encoding=UTF-8"`). 안 묶으면 PowerShell이
+   `.` 앞에서 인자를 쪼개 `-p -c`까지 클래스명으로 오인한다.
+2. `stdout.encoding`은 **JDK 18+ 전용**. 회사 PATH 기본 JDK 17 javap는 무시하므로 JDK 21을 써야 한다
+   (`javap -version`으로 확인).
+3. `export`(bash)·`| cat`(PowerShell에선 Get-Content)은 PowerShell에서 안 되니 섞지 않는다.
+   어느 환경이든 확실히 보려면 `... > build/javap_out.txt`로 파일에 빼서 에디터(UTF-8)로 연다.
+
 ## 자바 버전 주의
 - 이 프로젝트는 **Java 21** toolchain으로 고정되어 있다 (`build.gradle`의 `JavaLanguageVersion.of(21)`).
 - 커리큘럼 예제 중에는 **자바 버전에 따라 문법·동작이 달라지는 부분**이 섞여 있다

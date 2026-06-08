@@ -65,10 +65,31 @@ java -cp build/classes/java/main com.study.part02_jvm.s07_bytecode_constant_pool
 
 ### 터미널로 직접 확인 — javap
 
+> **⚠️ 한글 깨짐 방지** — 아래 명령들은 출력에 한글(상수 풀의 String 등)이 섞여 있어 인코딩이
+> 어긋나면 깨진다. 두 가지가 맞아야 한다: **javap가 UTF-8로 내보내기**(JDK 18+ &
+> `"-J-Dstdout.encoding=UTF-8"`, 따옴표 필수) + **터미널이 UTF-8로 디코딩**. 환경별 명령:
+>
+> **🏢 회사 — IntelliJ 내장 터미널(PowerShell), PATH 기본 JDK 17**
+> 앞 두 줄은 터미널 세션당 1회만 실행하면 된다(이후 모든 javap에 적용).
+> ```powershell
+> $env:PATH = "C:\Users\a0108\.jdks\dragonwell-21.0.11\bin;$env:PATH"
+> [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+> javap "-J-Dstdout.encoding=UTF-8" -v build\classes\java\main\com\study\part02_jvm\s07_bytecode_constant_pool\Example2_ConstantPool.class
+> ```
+> `export`(bash)·`| cat`(=Get-Content)은 PowerShell에서 안 되니 쓰지 말 것.
+> `[Console]::OutputEncoding` 한 줄을 `$PROFILE`에 넣으면 영구 적용된다.
+>
+> **🏠 집 — Git Bash 등 UTF-8 터미널, PATH 기본 JDK 21**
+> ```bash
+> javap "-J-Dstdout.encoding=UTF-8" -v build/classes/java/main/com/study/part02_jvm/s07_bytecode_constant_pool/Example2_ConstantPool.class
+> ```
+> (위는 `-v` 예시. 아래 가설 1~3의 `-c` 명령도 동일하게 환경에 맞춰 실행한다.)
+> 자세한 배경은 [2.5 method_execution 문서](./PART02_2_5_method_execution.md)의 동일 주의 박스 참고.
+
 **가설 1: 객체 생성 (new/dup/invokespecial)** — `javap -c`로 createPoint() 보기:
 
 ```bash
-javap -p -c build/classes/java/main/com/study/part02_jvm/s07_bytecode_constant_pool/Example1_NewDupInvoke.class
+javap "-J-Dstdout.encoding=UTF-8" -p -c build/classes/java/main/com/study/part02_jvm/s07_bytecode_constant_pool/Example1_NewDupInvoke.class
 ```
 
 실제 출력(createPoint 부분):
@@ -88,7 +109,7 @@ static ...Point createPoint();
 **가설 2: 상수 풀·심볼 참조** — `javap -v`로 상수 풀 보기:
 
 ```bash
-javap -v build/classes/java/main/com/study/part02_jvm/s07_bytecode_constant_pool/Example2_ConstantPool.class
+javap "-J-Dstdout.encoding=UTF-8" -v build/classes/java/main/com/study/part02_jvm/s07_bytecode_constant_pool/Example2_ConstantPool.class
 ```
 
 실제 출력(상수 풀 일부):
@@ -107,7 +128,7 @@ javap -v build/classes/java/main/com/study/part02_jvm/s07_bytecode_constant_pool
 **가설 3: 스택 기반 산술** — `javap -c`로 add() 보기:
 
 ```bash
-javap -p -c build/classes/java/main/com/study/part02_jvm/s07_bytecode_constant_pool/Example3_StackArithmetic.class
+javap "-J-Dstdout.encoding=UTF-8" -p -c build/classes/java/main/com/study/part02_jvm/s07_bytecode_constant_pool/Example3_StackArithmetic.class
 ```
 
 실제 출력(add 부분):
