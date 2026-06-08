@@ -45,7 +45,7 @@ jstack <PID>
 
 - [x] PART 1 객체지향(OOP) 기초 (1.1~1.8 완료)
 - [x] PART 2 JVM 메모리 모델과 실행 원리 (2.1~2.7 완료)
-- [ ] PART 3 GC
+- [x] PART 3 GC (3.1~3.5 완료)
 - [ ] PART 4 문자열과 컬렉션
 - [ ] PART 5 제네릭·비교·함수형
 - [ ] PART 6 I/O와 직렬화
