@@ -23,6 +23,57 @@
 문자열 비교는 거의 항상 `equals()`를 써야 한다. `==`로 비교하면 "리터럴이냐 new냐"에 따라 결과가
 달라져 버그가 된다.
 
+### 보충 1 — `equals()`는 어떻게 "값이 같은지" 확인하나? (String Pool과 무관!)
+헷갈리기 쉬운 점: `a.equals(c)`가 `true`인 것은 **String Pool과 아무 상관이 없다.** `equals()`는
+풀을 조회하지 않는다. String 클래스가 `equals()`를 오버라이드해서, **두 문자열의 글자를 하나하나
+직접 비교**할 뿐이다. 동작을 단순화하면 이렇다:
+
+```java
+// String.equals()의 핵심 로직 (개념 단순화)
+public boolean equals(Object other) {
+    if (this == other) return true;            // 1) 같은 객체면 당연히 true (빠른 경로)
+    if (!(other instanceof String s)) return false; // 2) String이 아니면 false
+    if (this.length() != s.length()) return false;  // 3) 길이 다르면 false
+    for (int i = 0; i < length(); i++) {       // 4) 글자를 하나씩 비교
+        if (this.charAt(i) != s.charAt(i)) return false;
+    }
+    return true;                               // 5) 전부 같으면 true
+}
+```
+
+즉 `a("abc")`와 `c(new String("abc"))`는 **서로 다른 객체**(`a == c`는 false)지만, `equals()`가
+글자를 차례로 비교(`a`==`a`, `b`==`b`, `c`==`c`)해서 모두 같으니 `true`를 돌려준다. 풀에 들어
+있는지 여부는 전혀 보지 않는다. **"== 는 주소 비교(또는 풀 재사용 여부), equals는 글자 비교"** 라고
+기억하면 된다.
+
+> 참고: 모든 클래스의 기본 `equals()`(Object의 것)는 사실 `==`와 똑같이 주소만 비교한다. String은
+> 이를 오버라이드해 "글자 비교"로 바꾼 것이다. 그래서 우리가 만든 클래스도 값 비교가 필요하면
+> equals()를 직접 오버라이드해야 한다(이건 4.8 hashCode/equals에서 다룬다).
+
+### 보충 2 — `intern()`은 풀을 조회해서 "같은 내용의 풀 객체"를 돌려준다
+`a == d` (단, `d = c.intern()`)가 `true`인 과정을 차근차근 보자. `c`는 `new String("abc")`로 만든
+**Heap의 새 객체**다(`a == c`는 false). 여기에 `c.intern()`을 호출하면:
+
+1. intern()이 **String Pool을 뒤져** "abc"와 **글자가 같은** 문자열이 풀에 이미 있는지 찾는다.
+2. 이미 있으면(있다! 리터럴 `a = "abc"`를 쓸 때 "abc"가 풀에 등록됐으므로) → **그 풀에 있는 객체의
+   참조를 반환**한다.
+3. 만약 풀에 없었다면 → c의 내용을 풀에 새로 등록하고 그 참조를 반환했을 것이다.
+
+여기서는 2번 경로다. 풀에 있던 "abc"는 `a`가 가리키는 바로 그 객체이므로, `d`도 **`a`와 똑같은 풀
+객체**를 가리키게 된다. 그래서 `a == d`가 `true`다. 정리하면:
+
+```
+a = "abc"            -> 풀의 "abc" 객체(주소 예: 0x100)
+c = new String("abc")-> Heap의 새 객체(주소 예: 0x500), 내용만 같음
+d = c.intern()       -> 풀에서 "abc" 찾음 -> 풀의 0x100 반환
+결과: a(0x100) == d(0x100)  -> true,  a(0x100) == c(0x500) -> false
+```
+
+**핵심**: intern()은 "c가 가진 글자(내용)"를 기준으로 풀을 조회해 **같은 내용의 풀 객체를 돌려주는**
+것이지, c 객체 자체를 풀에 넣어 a로 바꾸는 게 아니다. c는 여전히 Heap에 따로 존재하고, d만 풀의
+객체를 가리킨다. (intern은 풀 메모리를 늘릴 수 있어 남용은 금물 — 보통 직접 쓸 일은 드물고
+"리터럴은 자동으로 intern된 상태"라는 점만 알면 된다.)
+
 ### String은 불변(immutable)
 String은 한 번 만들어지면 **내부 내용을 절대 바꿀 수 없다.** `toUpperCase()`, `concat()`,
 `replace()` 같은 "수정처럼 보이는" 메서드는 사실 원본을 그대로 두고 **새 String을 만들어 반환**한다.
