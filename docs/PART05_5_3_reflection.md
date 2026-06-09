@@ -5,6 +5,44 @@
 
 ---
 
+## 0. 왜 배우는가 — "직접 쓸 일은 거의 없는데 왜?"
+
+솔직히 **애플리케이션 코드에서 Reflection을 직접 쓸 일은 거의 없다.** 그런데도 배우는 이유는,
+**우리가 매일 쓰는 프레임워크(Spring, JPA, Jackson, JUnit 등)가 전부 Reflection으로 동작하기
+때문**이다. Reflection을 모르면 그 프레임워크들이 "어떻게 마법처럼 동작하는지"가 영원히 블랙박스로
+남는다. 반대로 Reflection을 이해하면 다음이 한 번에 풀린다.
+
+- **"`@Autowired`만 붙였는데 어떻게 객체가 자동으로 주입되지?"** → Spring이 Reflection으로 필드/생성자를
+  찾아 객체를 만들어 넣기 때문.
+- **"`@Entity` 클래스에 getter/setter도 없는데 어떻게 DB 값이 필드에 채워지지?"** → JPA가 Reflection으로
+  private 필드에 직접 값을 넣기 때문(`setAccessible`).
+- **"JSON 문자열이 어떻게 내 객체로 변하지?"** → Jackson이 Reflection으로 클래스의 필드를 보고 매핑하기 때문.
+- **"JUnit은 어떻게 `@Test` 붙은 메서드만 골라 실행하지?"** → Reflection으로 어노테이션을 읽어
+  해당 메서드를 invoke하기 때문.
+
+### Reflection이 푸는 근본 문제 — "컴파일 시점에 모르는 것을 런타임에 다루기"
+일반 코드는 **컴파일 시점에 모든 타입·메서드를 알아야** 한다(`new Member()`, `member.getName()`처럼
+이름을 코드에 박아야 함). 그런데 프레임워크는 정반대 상황에 있다 — **"사용자가 앞으로 어떤 클래스를
+만들지 컴파일 시점엔 전혀 모른다."** Spring을 만들 때 우리가 짤 `UserService`는 존재하지도 않았다.
+
+그럼에도 프레임워크가 우리의 클래스를 객체로 만들고 메서드를 호출하려면, **"이름(문자열)이나 타입
+정보만으로 런타임에 클래스를 다루는" 능력**이 필요하다. 그게 Reflection이다. 즉 Reflection은
+**"미리 모르는 코드를 나중에 다루는" 문제를 푸는 도구**이고, 그래서 "범용 프레임워크"를 만들 수 있게 해준다.
+
+### 원리 한 줄 — 클래스 정보도 '객체'다
+자바는 클래스를 로딩할 때 그 클래스의 설계 정보(필드·메서드·생성자·어노테이션)를 `Class`라는 **객체**로
+만들어 Method Area에 둔다(2.2). Reflection은 이 `Class` 객체에게 "너 어떤 필드 있어? 어떤 메서드 있어?
+이 생성자로 객체 하나 만들어줘"라고 **런타임에 물어보고 시키는** 것이다. 코드가 코드(자기 자신의 구조)를
+들여다본다고 해서 'reflection(반사/성찰)'이라 부른다.
+
+### 그래서 무엇을 알아야 하나 (학습 목표)
+1. `Class` 객체를 얻는 법(이름 문자열로도 얻을 수 있다는 게 핵심).
+2. 그것으로 생성자/메서드/필드/어노테이션을 조회하고, 객체 생성·메서드 호출·필드 접근을 하는 법.
+3. private 우회(`setAccessible`)와 어노테이션 읽기 — 프레임워크 마법의 정체.
+4. 단점(성능·타입 안전성·캡슐화)을 알고, **직접 쓰기보다 "프레임워크가 이렇게 동작하는구나"를 이해**하는 용도.
+
+---
+
 ## 1. 학습 내용 — 런타임에 클래스를 들여다보고 조작하기
 
 ### Class 객체 — 모든 것의 출발점
@@ -26,6 +64,51 @@ Class<?> clazz = Class.forName("org.example.Member");
 Object obj = clazz.getDeclaredConstructor().newInstance();
 Method m = clazz.getMethod("hap", int.class, int.class);
 m.invoke(obj, 1, 2);
+```
+
+### 자주 쓰는 Reflection API (★ 레퍼런스)
+
+**(1) Class 객체 얻기**
+
+| 방법 | 언제 |
+|---|---|
+| `Member.class` | 컴파일 시점에 타입을 알 때 |
+| `obj.getClass()` | 인스턴스로부터 |
+| `Class.forName("패키지.클래스")` | **문자열 이름으로**(타입을 몰라도 됨) — 프레임워크가 주로 사용 |
+
+**(2) 멤버 조회** — `getXxx`는 public + 상속받은 것, `getDeclaredXxx`는 (private 포함) 그 클래스가
+직접 선언한 것만. 프레임워크는 보통 private까지 봐야 해서 `getDeclared...`를 많이 쓴다.
+
+| 메서드 | 반환 |
+|---|---|
+| `getFields()` / `getDeclaredFields()` | 필드 목록(`Field[]`) |
+| `getMethods()` / `getDeclaredMethods()` | 메서드 목록(`Method[]`) |
+| `getDeclaredConstructor(파라미터타입...)` | 특정 생성자(`Constructor`) |
+| `getDeclaredField("이름")` / `getDeclaredMethod("이름", 파라미터타입...)` | 특정 필드/메서드 |
+| `getAnnotation(Xxx.class)` / `isAnnotationPresent(Xxx.class)` | 어노테이션 읽기/존재 확인 |
+
+**(3) 실제 조작**
+
+| 메서드 | 용도 |
+|---|---|
+| `constructor.newInstance(인자...)` | 객체 생성(new 없이) |
+| `method.invoke(객체, 인자...)` | 메서드 호출(객체가 static이면 첫 인자 null) |
+| `field.get(객체)` / `field.set(객체, 값)` | 필드 읽기/쓰기 |
+| `accessibleObject.setAccessible(true)` | private 접근 제어 우회(Field/Method/Constructor 공통) |
+
+```java
+// 전형적 흐름: 이름 -> Class -> 생성자로 객체 -> 메서드 호출 -> private 필드 접근
+Class<?> clazz = Class.forName("org.example.Member");
+Object obj = clazz.getDeclaredConstructor(String.class).newInstance("홍길동");
+
+Method greet = clazz.getMethod("greet");
+greet.invoke(obj);                       // obj.greet()
+
+Field name = clazz.getDeclaredField("name");
+name.setAccessible(true);                // private 우회
+System.out.println(name.get(obj));       // private 필드 읽기
+
+if (clazz.isAnnotationPresent(Entity.class)) { ... }  // 어노테이션 기반 분기(프레임워크 패턴)
 ```
 
 ### 실무 사용처 — 프레임워크의 마법
