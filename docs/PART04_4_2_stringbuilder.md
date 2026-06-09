@@ -85,12 +85,14 @@ java -cp build/classes/java/main com.study.part04_collections.s02_stringbuilder.
 **예시 3 (Builder vs Buffer)** — 가설 3.
 
 단일 스레드(5,000,000회 append, 실측):
+
 | | 시간 |
 |---|---|
 | StringBuilder | 38 ms (빠름) |
 | StringBuffer | 97 ms (synchronized라 느림) |
 
 멀티 스레드(4스레드 × 100,000회, 기대 길이 400000):
+
 | | 최종 길이 |
 |---|---|
 | StringBuilder | **115472** (깨짐 — 동기화 없음) |

@@ -113,6 +113,7 @@ TreeSet/TreeMap에 Comparator를 주면 **그 Comparator가 자연 순서를 덮
 Comparator는 직접 `(a, b) -> ...`로 짜기보다, 아래 팩토리/콤비네이터를 조합해 쓰는 게 안전하고 읽기 쉽다.
 
 **(1) 기준을 만드는 팩토리 메서드 (static)** — "무엇으로 비교할지"를 람다(키 추출 함수)로 준다.
+
 | 메서드 | 용도 | 예시 |
 |---|---|---|
 | `Comparator.comparing(키추출)` | 객체 타입 키로 비교(키는 Comparable이어야) | `comparing(m -> m.name)` 이름순 |
@@ -126,6 +127,7 @@ Comparator는 직접 `(a, b) -> ...`로 짜기보다, 아래 팩토리/콤비네
 > `a-b` 오버플로 함정도 자동으로 피한다. **숫자 키는 comparingInt/Long/Double을 쓰는 게 권장.**
 
 **(2) 기준을 변형/조합하는 콤비네이터 (인스턴스 메서드)** — 만든 Comparator에 이어 붙인다.
+
 | 메서드 | 용도 | 예시 |
 |---|---|---|
 | `.reversed()` | 순서 뒤집기 | `comparingInt(m->m.age).reversed()` 나이 내림차순 |
@@ -133,9 +135,10 @@ Comparator는 직접 `(a, b) -> ...`로 짜기보다, 아래 팩토리/콤비네
 | `.thenComparingInt/Long/Double` | 2차 기준이 숫자일 때 | `byName.thenComparingInt(m->m.age)` |
 
 **(3) null 처리**
+
 | 메서드 | 용도 |
 |---|---|
-| `Comparator.nullsFirst(cmp)` | null을 맨 앞으로 | 
+| `Comparator.nullsFirst(cmp)` | null을 맨 앞으로 |
 | `Comparator.nullsLast(cmp)` | null을 맨 뒤로 |
 
 ```java
