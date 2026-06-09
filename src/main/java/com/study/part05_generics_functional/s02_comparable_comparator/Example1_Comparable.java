@@ -16,6 +16,20 @@ import java.util.TreeSet;
  * 이 compareTo를 자동으로 사용한다. compareTo의 반환값(음수/0/양수)이 "누가 앞인지"를 정한다는
  * 점도 직접 확인한다.
  *
+ * [원리] "왜 sort가 내가 만든 compareTo를 자동으로 부르나?" (★ 핵심)
+ * 1) Collections.sort의 진짜 시그니처는 다음과 같다:
+ *        static <T extends Comparable<? super T>> void sort(List<T> list)
+ *    즉 "정렬하려는 원소 T는 반드시 Comparable이어야 한다"는 제약이 걸려 있다. 그래서 Comparable을
+ *    구현하지 않은 타입을 sort에 넘기면 '컴파일 에러'가 난다. Member는 Comparable<Member>라 통과한다.
+ * 2) sort는 내부에서 정렬할 때 두 원소를 비교해야 하는데, 컴파일 시점엔 그게 Member인지 무엇인지
+ *    구체 타입을 모른다. 다만 "T는 Comparable이다(1의 제약)"는 사실은 안다. 그래서 sort는 그저
+ *    a.compareTo(b) 를 호출한다 — "비교는 너(원소)가 알아서 해. 난 음수/0/양수만 보고 자리만 바꿀게."
+ * 3) 실제 실행 시점에는 a가 Member 객체이므로, a.compareTo(b)는 '내가 작성한 Member.compareTo'가
+ *    실행된다(다형성/동적 바인딩, 1.5/2.5). sort는 그 반환값(음수면 a가 앞)만 보고 자리를 정한다.
+ * 정리: sort는 "구체 타입은 모르지만 Comparable이라는 약속(인터페이스)만 믿고" compareTo를 호출하고,
+ *   런타임에 실제로 실행되는 건 내가 구현한 메서드다. = '인터페이스에 의존, 구현은 주입(다형성)'.
+ *   (sort가 Member를 직접 아는 게 아니라, Member가 sort가 아는 Comparable 약속을 따르기 때문이다.)
+ *
  * 예상 결과:
  *   - compareTo: 25세.compareTo(30세) -> 음수(앞), 30.compareTo(25) -> 양수, 같으면 0
  *   - Collections.sort(list): 나이 오름차순으로 정렬됨(자연 순서 자동 사용)

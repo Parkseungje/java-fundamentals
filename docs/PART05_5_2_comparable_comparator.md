@@ -15,6 +15,22 @@
 - 반환값 약속: this가 o보다 **작으면 음수, 같으면 0, 크면 양수**.
 - `Collections.sort()`, `TreeSet`, `TreeMap`이 별도 기준 없이 **자동으로** 이 compareTo를 쓴다.
 
+#### ★ "왜 sort가 내가 만든 compareTo를 자동으로 부르나?" (원리)
+`Collections.sort(list)`가 내가 작성한 `Member.compareTo`를 호출하는 건 마법이 아니라 **제네릭 제약 +
+다형성**의 결과다.
+1. **제네릭 제약**: sort의 진짜 시그니처는 `static <T extends Comparable<? super T>> void sort(List<T> list)`.
+   즉 "원소 T는 반드시 `Comparable`이어야 한다"는 조건이 걸려 있다. Comparable이 아닌 타입을 넘기면
+   **컴파일 에러**. Member는 `Comparable<Member>`라 통과한다.
+2. **인터페이스에 의존**: sort는 정렬 중 두 원소를 비교해야 하는데, 컴파일 시점엔 그게 Member인지 모른다.
+   다만 "T는 Comparable"이라는 사실만 안다. 그래서 그냥 `a.compareTo(b)`를 호출한다 — "비교는 네가 해,
+   난 음수/0/양수만 보고 자리만 바꿀게."
+3. **런타임에 내 구현 실행(다형성)**: 실제로 a는 Member 객체이므로 `a.compareTo(b)`는 **내가 작성한
+   Member.compareTo**가 실행된다(동적 바인딩 — 1.5/2.5). sort는 그 반환값만 보고 순서를 정한다.
+
+정리: **sort가 Member를 직접 아는 게 아니라, Member가 sort가 아는 `Comparable` 약속(인터페이스)을
+따르기 때문**이다. "도구는 인터페이스에 의존하고, 실제 구현은 런타임에 주입된다"는 다형성의 전형이다.
+(TreeSet/TreeMap도 같은 원리로 compareTo를 호출한다.)
+
 #### ★ 헷갈리는 지점 — "구현은 사용자가, 규칙(약속)은 Javadoc 명세가"
 `Comparable`은 인터페이스라 `compareTo`의 **구현(몸통)은 사용자가** 작성한다. 인터페이스 코드에는
 이것뿐이다:
