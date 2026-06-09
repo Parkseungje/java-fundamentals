@@ -109,6 +109,49 @@ list.sort(byName.thenComparing(byAge));       // 이름순, 같으면 나이순
 
 TreeSet/TreeMap에 Comparator를 주면 **그 Comparator가 자연 순서를 덮어쓴다**(우선).
 
+### 자주 쓰는 Comparator 메서드 (★ 레퍼런스)
+Comparator는 직접 `(a, b) -> ...`로 짜기보다, 아래 팩토리/콤비네이터를 조합해 쓰는 게 안전하고 읽기 쉽다.
+
+**(1) 기준을 만드는 팩토리 메서드 (static)** — "무엇으로 비교할지"를 람다(키 추출 함수)로 준다.
+| 메서드 | 용도 | 예시 |
+|---|---|---|
+| `Comparator.comparing(키추출)` | 객체 타입 키로 비교(키는 Comparable이어야) | `comparing(m -> m.name)` 이름순 |
+| `Comparator.comparingInt(키추출)` | int 키로 비교(**박싱 없음 → 빠르고 안전**) | `comparingInt(m -> m.age)` 나이순 |
+| `Comparator.comparingLong / comparingDouble` | long/double 키로 비교 | `comparingDouble(p -> p.price)` |
+| `Comparator.naturalOrder()` | 자연 순서(compareTo) 그대로 | `list.sort(Comparator.naturalOrder())` |
+| `Comparator.reverseOrder()` | 자연 순서의 역순 | 내림차순 정렬 |
+
+> `comparing` vs `comparingInt`: `comparing(m -> m.age)`는 int age가 Integer로 **오토박싱**된다.
+> `comparingInt(m -> m.age)`는 int 그대로 비교해 박싱 비용이 없고, 내부적으로 `Integer.compare`를 써서
+> `a-b` 오버플로 함정도 자동으로 피한다. **숫자 키는 comparingInt/Long/Double을 쓰는 게 권장.**
+
+**(2) 기준을 변형/조합하는 콤비네이터 (인스턴스 메서드)** — 만든 Comparator에 이어 붙인다.
+| 메서드 | 용도 | 예시 |
+|---|---|---|
+| `.reversed()` | 순서 뒤집기 | `comparingInt(m->m.age).reversed()` 나이 내림차순 |
+| `.thenComparing(다음기준)` | 1차 기준이 같을 때 2차 기준 | `byName.thenComparing(byAge)` 이름순, 같으면 나이순 |
+| `.thenComparingInt/Long/Double` | 2차 기준이 숫자일 때 | `byName.thenComparingInt(m->m.age)` |
+
+**(3) null 처리**
+| 메서드 | 용도 |
+|---|---|
+| `Comparator.nullsFirst(cmp)` | null을 맨 앞으로 | 
+| `Comparator.nullsLast(cmp)` | null을 맨 뒤로 |
+
+```java
+// 조합 예: 나이 오름차순, 같으면 이름 사전순, 전체를 역순으로
+Comparator<Member> cmp = Comparator
+        .comparingInt((Member m) -> m.age)   // 1차: 나이(int, 박싱 없음)
+        .thenComparing(m -> m.name)          // 2차: 이름
+        .reversed();                         // 전체 뒤집기
+list.sort(cmp);
+
+// 키 추출은 메서드 참조로도: comparing(Member::getName)
+```
+
+핵심: **"무엇으로 비교할지"는 comparing 계열로 키만 뽑아주고, "어떻게 변형/연결할지"는 reversed/
+thenComparing으로 잇는다.** 직접 음수/양수를 계산하지 않으므로 실수(오버플로 등)가 줄고 의도가 잘 읽힌다.
+
 ### 'a - b' 오버플로 함정 (★ 실무 주의)
 정수 비교를 `(a, b) -> a - b`로 짜면, 빼기 결과가 int 범위를 넘을 때(예: `MAX - MIN`) **오버플로로
 부호가 뒤집혀** 잘못된 비교가 된다. **`Integer.compare(a, b)`** (또는 `Comparator.comparingInt`)는
