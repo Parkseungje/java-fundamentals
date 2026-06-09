@@ -48,6 +48,35 @@
 문제는, 불공변이라 너무 엄격해서 "Fruit이거나 그 하위 타입의 리스트를 유연하게 받고 싶다"가 안 된다.
 그 해법이 **와일드카드**다.
 
+### 헷갈리는 지점 ① — `super`가 무슨 뜻이고, 왜 `? super Fruit` 어순인가
+`? super Fruit`이 어색하게 느껴진다면 대개 **`super`라는 단어의 뜻**과 **어순**때문이다.
+
+**`super`의 뜻 = "위에 있는, 상위의"** (supervisor=감독자, superior=상급자 처럼 "위"의 느낌).
+자바에서도 일관되게 "상위(부모)"를 뜻한다 — 상속에서 쓴 `super()`도 "부모(상위 클래스) 생성자"였다(1.4).
+와일드카드의 `super`도 똑같이 "상위"다.
+
+**어순 규칙: 항상 `? [관계] 기준타입` 이고, 주어는 언제나 `?`(빈칸)다.**
+`extends`/`super`는 자바 어디서나 "왼쪽이 오른쪽을 ~한다"로 읽는다(클래스 선언 `class Apple extends Fruit`와 동일).
+```
+? extends Fruit   →  "?가 Fruit를 extends" = ?는 Fruit의 '하위'(자식 쪽)
+? super   Fruit   →  "?가 Fruit를 super"   = ?는 Fruit의 '상위'(부모 쪽)
+```
+그래서 `Fruit super ?`처럼 쓰면 안 된다 — 그러면 주어가 Fruit가 되어 어순이 깨진다. 자바는 **제한받는
+쪽(?)을 항상 앞에** 둔다. `? super Fruit`은 "**?가 Fruit의 상위(super)다**"라고 읽으면 자연스럽다.
+
+**방향 그림** (extends=아래로 뻗는 자식, super=위에 있는 부모):
+```
+        Object         ← super 방향 (위/상위)
+          |
+        Fruit  ←─────── 기준타입
+        /   \
+     Apple  Banana      ← extends 방향 (아래/하위)
+
+? extends Fruit  →  Fruit '이하'  : {Fruit, Apple, Banana}   (Fruit가 천장)
+? super   Fruit  →  Fruit '이상'  : {Fruit, Object}          (Fruit가 바닥)
+```
+정리: **extends = 아래(자식 쪽), super = 위(부모 쪽)**. 단어 뜻만 알면 방향이 안 헷갈린다.
+
 ### 와일드카드 — 상한(? extends)과 하한(? super)
 - **`? extends T` (상한, Producer)**: "T이거나 그 하위 타입". 꺼내면 최소 T임이 보장되어 **읽기 안전**.
   하지만 정확한 타입을 모르므로(Apple 리스트일 수도 Banana 리스트일 수도) **넣기 불가**(null만 가능).
