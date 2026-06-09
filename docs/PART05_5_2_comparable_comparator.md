@@ -12,7 +12,7 @@
 ### Comparable — 자기 자신의 자연 순서 (클래스 내부, 1개)
 클래스가 `Comparable<T>`를 구현하고 `compareTo(T o)` 하나를 정의한다. 이것이 그 클래스의
 **기본 정렬 기준(natural ordering, 자연 순서)** 이다.
-- 반환값 약속: this가 0보다 **작으면 음수, 같으면 0, 크면 양수**.
+- 반환값 약속: this가 o보다 **작으면 음수, 같으면 0, 크면 양수**.
 - `Collections.sort()`, `TreeSet`, `TreeMap`이 별도 기준 없이 **자동으로** 이 compareTo를 쓴다.
 
 ### Comparator — 외부에서 주입하는 비교 기준 (외부, 무제한)
