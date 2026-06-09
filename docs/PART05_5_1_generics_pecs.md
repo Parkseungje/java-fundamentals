@@ -13,16 +13,30 @@
 
 먼저 기본 전제: `String`은 `Object`의 하위 타입이다(String is-a Object). 그래서 `Object o = "hi";`는 된다.
 
-이 관계가 "그릇"으로도 이어지는지 보자.
-- **공변(covariant)**: "String이 Object의 하위면, String 그릇도 Object 그릇의 하위로 친다." 즉
-  하위 관계가 그릇에 **그대로 전파**된다. **배열이 공변**이라 `Object[] arr = new String[3]`이 된다
-  (String[]을 Object[]의 하위로 취급).
-- **불공변(invariant)**: "String이 Object의 하위여도, `List<String>`과 `List<Object>`는 아무 상하
-  관계가 없다(완전히 별개 타입)." 즉 하위 관계가 그릇으로 **전파되지 않는다**. **제네릭이 불공변**이라
-  `List<Object> = List<String>` 대입이 안 된다(컴파일 에러).
+이 관계가 "그릇"으로도 이어지는지 보자. 세 가지 경우가 있다(Fruit ← Apple, 즉 Apple이 Fruit의 하위라고 하자).
+- **공변(covariant)**: "Apple이 Fruit의 하위면, Apple 그릇도 Fruit 그릇의 하위로 친다." 즉 하위 관계가
+  그릇에 **같은 방향으로 전파**된다. **배열이 공변**이라 `Fruit[] arr = new Apple[3]`이 된다
+  (Apple[]을 Fruit[]의 하위로 취급).
+- **반공변(contravariant)**: "Apple이 Fruit의 하위면, 그릇에서는 **방향이 뒤집혀** Fruit 그릇을 Apple
+  그릇의 하위처럼 취급한다." 즉 상하 관계가 그릇으로 가면서 **반대로 전파**된다.
+- **불공변(invariant)**: 하위 관계가 그릇으로 **전혀 전파되지 않는다.** "Apple이 Fruit의 하위여도
+  `List<Apple>`과 `List<Fruit>`는 아무 상하 관계 없는 완전히 별개 타입." **제네릭이 기본적으로 불공변**이라
+  `List<Fruit> = List<Apple>` 대입이 안 된다(컴파일 에러).
 
-쉽게 말해 **공변 = "자식 그릇을 부모 그릇 자리에 넣어도 됨", 불공변 = "안 됨(서로 남남)"** 이다.
-(참고로 `? extends`는 "공변처럼" 동작하게, `? super`는 "반공변처럼" 동작하게 만드는 장치다.)
+한 줄 정리(그릇 A가 그릇 B를 대신할 수 있는 방향):
+- 공변 = **자식 그릇 → 부모 그릇** 자리 OK (방향 그대로)
+- 반공변 = **부모 그릇 → 자식 그릇** 자리 OK (방향 반대)
+- 불공변 = 어느 쪽도 안 됨 (서로 남남)
+
+### 와일드카드로 공변/반공변을 "선택적으로" 켠다
+제네릭 자체는 불공변이지만, 와일드카드로 필요할 때 공변/반공변처럼 동작하게 만들 수 있다.
+- `? extends Fruit` = **공변처럼**: `List<? extends Fruit>` 자리에 `List<Apple>`을 넣을 수 있다
+  (자식 그릇 → 부모 자리). 대신 꺼내 읽기만 안전(넣기 불가) → Producer.
+- `? super Fruit` = **반공변처럼**: `List<? super Fruit>` 자리에 `List<Object>`(상위 타입 그릇)를
+  넣을 수 있다 (부모 그릇 → 더 좁은 자리, 방향 반대). 대신 넣기만 안전(꺼내면 Object) → Consumer.
+
+즉 PECS의 extends/super가 바로 **공변/반공변을 코드로 켜는 스위치**이고, 그래서 "Producer-Extends(공변,
+읽기), Consumer-Super(반공변, 쓰기)"로 외워진다(아래 PECS 섹션과 직결).
 
 ### 불공변성(Invariance) — 배열(공변)은 왜 위험한가
 - **배열은 공변(covariant)**: `Object[] arr = new String[3]`이 된다. 하지만 위험하다 — `arr[0] = 123`
