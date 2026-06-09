@@ -31,6 +31,33 @@
 따르기 때문**이다. "도구는 인터페이스에 의존하고, 실제 구현은 런타임에 주입된다"는 다형성의 전형이다.
 (TreeSet/TreeMap도 같은 원리로 compareTo를 호출한다.)
 
+#### ★ 그럼 compareTo를 안 만들면 sort를 못 쓰나? — "비교 기준은 둘 중 하나로 반드시 제공"
+정렬하려면 "어떻게 비교할지"가 **반드시 어딘가에 있어야** 한다. 그 통로는 두 가지이고, **둘 중 하나만
+있으면 된다.**
+- (a) **클래스 안에 `compareTo`(Comparable)** → 자연 순서
+- (b) **밖에서 `Comparator`를 sort에 넘김** → 외부 기준
+
+그래서 `compareTo`를 안 만들어도, Comparator를 주면 정렬할 수 있다.
+
+| 방법 | compareTo(Comparable) 필요? | 동작 |
+|---|---|---|
+| `Collections.sort(list)` / `list.sort(null)` | ✅ 필요 | 없으면 **컴파일 에러**(인자 1개 sort) — 자연 순서로 정렬 |
+| `Collections.sort(list, cmp)` / `list.sort(cmp)` | ❌ 불필요 | Comparator로 기준 제공 → 정상 정렬 |
+
+```java
+// compareTo 없는 클래스라도 Comparator를 주면 OK
+list.sort(Comparator.comparingInt(m -> m.age));     // 외부 기준 제공
+Collections.sort(list, (a, b) -> a.age - b.age);    // (a-b는 오버플로 위험 — comparingInt 권장)
+```
+
+둘 다 없으면? sort는 "무엇을 기준으로 정렬하라는 거지?"를 알 수 없어 정렬 불가다.
+- 인자 1개 `sort(list)`: 제네릭 제약 위반으로 **컴파일 에러**.
+- 인자 2개에 `null` 전달: 자연 순서를 시도하다 Comparable이 아니면 런타임에 **ClassCastException**
+  (4.5 TreeSet에서 본 것과 같은 현상).
+
+→ 핵심은 5.2 전체의 요지와 같다: **Comparable(내부 기준) 또는 Comparator(외부 기준), 둘 중 하나는
+반드시 제공해야 비교/정렬이 가능하다.**
+
 #### ★ 헷갈리는 지점 — "구현은 사용자가, 규칙(약속)은 Javadoc 명세가"
 `Comparable`은 인터페이스라 `compareTo`의 **구현(몸통)은 사용자가** 작성한다. 인터페이스 코드에는
 이것뿐이다:
