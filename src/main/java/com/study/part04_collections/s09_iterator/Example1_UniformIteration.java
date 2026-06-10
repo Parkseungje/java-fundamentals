@@ -1,10 +1,6 @@
 package com.study.part04_collections.s09_iterator;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.*;
 
 /**
  * 예시 1 / 3 — Iterator 패턴: "내부 구조를 몰라도 같은 코드로 순회한다."
@@ -29,9 +25,9 @@ public class Example1_UniformIteration {
         System.out.println("[예시 1] Iterator 패턴: 내부 구조 무관하게 동일 코드로 순회");
         System.out.println();
 
-        Collection<String> arrayList = new ArrayList<>(java.util.List.of("a", "b", "c"));
-        Collection<String> hashSet = new HashSet<>(java.util.List.of("x", "y", "z"));
-        Collection<String> linkedList = new LinkedList<>(java.util.List.of("1", "2", "3"));
+        Collection<String> arrayList = new ArrayList<>(List.of("a", "b", "c"));
+        Collection<String> hashSet = new HashSet<>(List.of("x", "y", "z"));
+        Collection<String> linkedList = new LinkedList<>(List.of("1", "2", "3"));
 
         // 같은 메서드가 내부 구조가 다른 세 컬렉션 모두에 동작한다.
         System.out.println("ArrayList  원소 수 = " + countAll(arrayList));
