@@ -61,6 +61,47 @@ NIO.2(Java 7)가 `File`을 `Path`(경로 표현) + `Files`(조작 메서드)로 
 링크 지원 ④ 비효율적 대용량 순회 ⑤ 확장 불가**를 해결하려고, **경로(Path)와 조작(Files)을 분리하고
 예외 기반·Stream 기반·플랫폼 추상화**로 다시 설계한 것이다.
 
+### ★ 헷갈리는 지점 — "Path는 파일이 아니다" (실제 파일 vs 가리키는 객체)
+`Path out = Files.createTempFile("append", ".txt")`를 보면 "Path인데 append.txt는 파일 아닌가?
+파일을 만들었는데 왜 또 `toFile()`로 파일화하지?" 하고 헷갈리기 쉽다. 핵심은 **"실제 파일"과
+"그 파일을 가리키는 객체"는 다른 개념**이라는 것이다.
+
+| 개념 | 정체 |
+|---|---|
+| `append.txt` (디스크의 실제 파일) | OS/디스크에 존재하는 진짜 파일 |
+| `Path` | 그 파일을 **가리키는 자바 객체**(경로 정보) — NIO.2 양식 |
+| `File` | 그 파일을 가리키는 **또 다른 종류**의 자바 객체 — 옛 양식 |
+
+비유: **집(실제 파일) vs 집 주소가 적힌 종이(Path/File)**. Path와 File은 둘 다 "같은 집을 가리키는
+주소 종이"인데 **양식만 다르다**(NIO.2 양식=Path, 옛 양식=File).
+
+**`Files.createTempFile`은 두 가지를 한다.**
+1. 디스크에 실제 빈 파일을 **생성**하고, 2. 그 경로를 **Path로 반환**한다. 그래서 "파일이 만들어졌고,
+그걸 가리키는 주소가 Path 타입"인 상태다.
+
+**`toFile()`은 파일을 또 만드는 게 아니다.** 디스크 파일은 그대로 두고, **가리키는 객체의 타입만
+Path → File로 변환**한다(주소 종이를 NIO.2 양식 → 옛 양식으로 옮겨 적기). 왜? `FileInputStream` 같은
+옛 스트림 클래스가 `Path`를 못 받고 `File`만 받기 때문이다.
+
+**경로만 만들기 vs 파일까지 만들기 — 둘은 다르다.**
+
+| 코드 | 실제 파일 생성? | 의미 |
+|---|---|---|
+| `Path.of("a.txt")` / `Paths.get("a.txt")` | ❌ 안 함 | "a.txt를 가리키는 주소"만 만든다(디스크엔 없을 수 있음) |
+| `Files.createTempFile("x", ".txt")` | ✅ 함 | 실제 파일 생성 + 그 Path 반환 |
+| `Files.createFile(path)` / `Files.write(path, ...)` | ✅ 함 | Path가 가리키는 곳에 실제 파일 생성/기록 |
+
+```java
+Path p = Path.of("a.txt");     // 주소만 — 디스크엔 아직 파일 없음
+Files.exists(p);                // false
+Files.createFile(p);            // 이제 실제 파일 생성
+Files.writeString(p, "내용");    // 또는 쓰면서 생성
+```
+
+정리: **`Path`는 "경로(주소)를 나타내는 값"일 뿐, 그 자체로는 파일 존재와 무관**하다. 실제 파일을
+만지는 건 `Files`의 메서드(`createTempFile`/`createFile`/`write` 등)다. `toFile()`은 파일이 아니라
+'주소 객체의 타입'을 바꾸는 변환일 뿐이다.
+
 ### ★ IO vs NIO API 구분 — 패키지·클래스로 알아본다
 "어떤 게 옛 IO고 어떤 게 NIO냐"는 **패키지 이름**으로 거의 구분된다.
 - **옛 IO** = `java.io.*` (클래스명에 `File`, `Stream`, `Reader`, `Writer`가 붙음)
