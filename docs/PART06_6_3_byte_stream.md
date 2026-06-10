@@ -34,6 +34,65 @@
 `FileOutputStream`은 기본이 **덮어쓰기**다. 생성자에 `true`를 주면 **이어쓰기**:
 `new FileOutputStream(path, true)`.
 
+### 보충 — `"HELLO".getBytes(UTF_8)`은 뭐고, 꼭 써야 하나?
+예제에 자주 나오는 `Files.write(file, "HELLO".getBytes(StandardCharsets.UTF_8))`이 헷갈릴 수 있다.
+
+**`getBytes(charset)` = 문자열을 그 인코딩 규칙으로 byte[]로 변환**한다.
+- `"HELLO".getBytes(UTF_8)` → `[72, 69, 76, 76, 79]` (H,E,L,L,O — 영어라 1글자=1바이트)
+- 문자(글자)와 바이트(파일에 저장되는 숫자)는 다른 개념이라, "글자→바이트"로 바꾸려면 인코딩이 필요하다.
+
+**왜 변환하나? → `Files.write`가 byte[]만 받기 때문이다.**
+
+```java
+Files.write(file, byte[])          // 시그니처: byte[]만 받음
+Files.write(file, "HELLO".getBytes(UTF_8));  // ✅ 문자열 -> byte[] 변환 필요
+Files.write(file, "HELLO");                  // ❌ 컴파일 에러(String은 byte[]가 아님)
+```
+
+**문자열을 바로 쓰고 싶으면 `Files.writeString`(Java 11+)을 쓰면 된다 — 변환 불필요:**
+
+```java
+Files.writeString(file, "HELLO");                       // 기본 UTF-8 (getBytes 불필요)
+Files.writeString(file, "HELLO", StandardCharsets.UTF_8);
+```
+
+| 쓰려는 것 | 메서드 | 인코딩 |
+|---|---|---|
+| 문자열 (간단) | `Files.writeString(file, s)` | 내부 자동(기본 UTF-8) |
+| 문자열 (byte API로) | `Files.write(file, s.getBytes(UTF_8))` | 수동 변환 |
+| 바이트(이미지 등) | `Files.write(file, byteArray)` | 변환 불필요(이미 바이트) |
+
+이 단원 예제가 `Files.write` + getBytes를 쓴 건 **"문자열도 결국 바이트로 저장된다"는 바이트 단원의
+취지**를 명시적으로 보여주기 위해서다. 의미상 `Files.writeString(file, "HELLO")`와 같다.
+
+> ⚠️ `getBytes()`를 **인자 없이** 쓰면 플랫폼 기본 charset(Windows 한국어=MS949 등)을 써서 환경마다
+> 결과가 달라질 수 있다(6.4 인코딩 함정). **항상 `getBytes(StandardCharsets.UTF_8)`처럼 인코딩을 명시**하자.
+
+### 보충 — `file.toFile()`은 뭐고 왜 필요한가?
+예제에 나오는 `new FileInputStream(file.toFile())`의 `file.toFile()`도 헷갈릴 수 있다.
+
+자바에는 파일 경로를 나타내는 타입이 **두 가지**다.
+- **`java.nio.file.Path`** (NIO.2, Java 7+) — 현대적 API. `Files`, `Path.of(...)`, `Files.createTempFile(...)`이 돌려주는 타입.
+- **`java.io.File`** (옛 API) — `FileInputStream`/`FileOutputStream`/`FileReader` 같은 **옛 스트림 클래스들이 받는 타입.**
+
+문제는 옛 스트림 클래스들이 **`Path`를 직접 못 받고 `File`만 받는다**는 것이다. 그래서 `Path`를
+`File`로 바꿔주는 변환 메서드가 `Path.toFile()`이다(반대 방향은 `File.toPath()`).
+
+```java
+Path file = Files.createTempFile("x", ".txt");   // Path를 얻음
+new FileInputStream(file)            // ❌ 컴파일 에러 (FileInputStream은 Path를 못 받음)
+new FileInputStream(file.toFile())   // ✅ Path -> File 로 변환해 전달
+```
+
+| 변환 | 의미 |
+|---|---|
+| `path.toFile()` | NIO.2 `Path` → 옛 `java.io.File` |
+| `file.toPath()` | 옛 `File` → NIO.2 `Path` |
+
+> 참고: 사실 NIO.2에는 Path를 바로 받는 `Files.newInputStream(path)` / `Files.newOutputStream(path)`가
+> 있어서, 이걸 쓰면 `toFile()` 없이도 된다(현대 코드 권장). 이 단원이 `FileInputStream(...toFile())`을
+> 쓴 건 '전통 바이트 스트림 클래스'를 직접 보여주기 위해서다.
+
 ---
 
 ## 2. 실습으로 확인하기
