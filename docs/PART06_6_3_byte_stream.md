@@ -15,6 +15,62 @@
 그래서 `System.in`(InputStream)을 `read()`로 1바이트씩 읽으면 영어는 되지만 **한글은 깨진다.**
 문자를 제대로 다루려면 인코딩을 아는 **문자 스트림(Reader/Writer)** 이 필요하다(6.4).
 
+### InputStream / OutputStream 사용법
+바이트 스트림은 `InputStream`(읽기)과 `OutputStream`(쓰기) 두 추상 클래스가 기본이고, 파일용 구현이
+`FileInputStream` / `FileOutputStream`이다. **Input은 "외부→JVM(읽기)", Output은 "JVM→외부(쓰기)"** (6.1).
+
+**OutputStream (쓰기) — 핵심 메서드**
+
+| 메서드 | 의미 |
+|---|---|
+| `write(int b)` | 1바이트 쓰기 (int의 하위 8비트) |
+| `write(byte[] b)` | 바이트 배열 통째로 쓰기 |
+| `write(byte[] b, int off, int len)` | 배열의 일부(off부터 len개)만 쓰기 |
+| `flush()` | 버퍼에 남은 것을 강제로 내보내기(Buffered일 때 중요 — 6.5) |
+| `close()` | 닫기(try-with-resources가 자동 호출) |
+
+```java
+// 쓰기: 바이트를 파일로 내보냄
+try (OutputStream out = new FileOutputStream("a.txt")) {
+    out.write("HELLO".getBytes(StandardCharsets.UTF_8)); // 문자열 -> byte[] (6.3 보충 참고)
+    out.write(65);                                        // 1바이트(65 = 'A')
+} // 블록 끝에서 자동 close
+```
+
+**InputStream (읽기) — 핵심 메서드**
+
+| 메서드 | 의미 |
+|---|---|
+| `read()` | 1바이트 읽어 0~255로 반환, 끝이면 -1 |
+| `read(byte[] buf)` | buf에 최대 buf.length만큼 읽고, **실제 읽은 수 n** 반환(끝이면 -1) |
+| `readAllBytes()` | 끝까지 전부 읽어 byte[]로 (Java 9+) |
+| `close()` | 닫기(try-with-resources가 자동 호출) |
+
+```java
+// 읽기 방법 1: 1바이트씩 (전형적 루프)
+try (InputStream in = new FileInputStream("a.txt")) {
+    int b;
+    while ((b = in.read()) != -1) {   // -1(EOF)까지
+        // b를 처리 (0~255)
+    }
+}
+
+// 읽기 방법 2: 버퍼로 한 번에 (빠름, 단 'n까지만' 처리 — 아래 함정 참고)
+try (InputStream in = new FileInputStream("a.txt")) {
+    byte[] buf = new byte[1024];
+    int n;
+    while ((n = in.read(buf)) != -1) {
+        // buf[0..n) 만 처리!
+    }
+}
+```
+
+> 💡 **"쓰고 나서 왜 또 읽지?" (예제에서 자주 헷갈리는 점)** — `Files.write(file, ...)`로 파일에 쓴
+> 다음 `new FileInputStream(file.toFile())`로 읽는 코드를 보면 "이미 썼는데 왜 또?"라고 생각하기 쉽다.
+> 쓰기(Output)와 읽기(Input)는 **별개의 작업**이다. 예제는 "읽기 동작/함정"을 보여주는 게 목적이라,
+> 먼저 `write`로 **읽을 대상 파일을 준비**해 두고, 그다음 `InputStream`으로 **그 파일을 다시 읽으며**
+> 시연하는 것이다. (시험문제를 칠판에 적어놓고 → 그걸 보고 푸는 것과 같다.)
+
 ### read()는 왜 int를 반환하나 (EOF -1)
 `InputStream.read()`는 1바이트를 읽는데 반환 타입이 `byte`가 아니라 `int`다. 이유는 두 가지를
 한 반환값으로 구분해야 하기 때문이다.
