@@ -33,6 +33,34 @@ Input/Output은 항상 **JVM(내 프로그램)을 기준**으로 나뉜다.
 실패 시 **구체적인 예외**(없으면 `NoSuchFileException` 등)를 던져 원인을 알 수 있다. Files API는
 메서드가 모두 static이고 Path를 인자로 받는다. 그래서 신규 코드는 Files/Path를 쓴다.
 
+#### 왜 NIO.2는 File을 버리고 Path + Files 구조로 갔나 — File의 5가지 문제
+NIO.2(Java 7)가 `File`을 `Path`(경로 표현) + `Files`(조작 메서드)로 쪼갠 건 `File`의 누적된 결함을
+해결하기 위해서였다. `File`이 안고 있던 문제들:
+
+1. **실패 원인을 알 수 없다 (가장 큰 문제).** `File`의 조작 메서드는 대부분 **boolean을 반환**한다
+   (`delete()`, `mkdir()`, `renameTo()` ...). false가 와도 "없어서/권한 없어서/잠겨서" 중 무엇인지 모른다.
+   → `Files`는 **구체적 예외**(`NoSuchFileException`, `AccessDeniedException` 등)를 던져 원인을 알고 대처할 수 있다.
+
+2. **'경로 표현'과 '파일 조작'이 한 클래스에 뒤섞임 (책임 과다 = SRP 위반).** `File`은 경로를 나타내는
+   값이면서 동시에 delete/mkdir 같은 동작도 하는 거대 클래스였다. → NIO.2는 **`Path`(경로라는 '값'만 표현)**
+   와 **`Files`(조작을 모은 유틸)** 로 책임을 분리했다. 그래서 새 기능을 `Files`에 추가하기도 쉽다.
+
+3. **메타데이터·심볼릭 링크·권한을 제대로 못 다룸.** `File`은 파일 권한, 소유자, 생성/수정 시간,
+   심볼릭 링크 같은 OS 파일 시스템 기능을 빈약하게만 지원했다. → `Files`는 `getPosixFilePermissions`,
+   `readAttributes`, 심볼릭 링크 처리 등 **현대 파일 시스템 기능**을 제대로 제공한다.
+
+4. **대용량 디렉터리 순회가 비효율적.** `File.listFiles()`는 모든 항목을 **배열에 한꺼번에** 담아
+   메모리를 많이 쓰고, 큰 디렉터리에서 느렸다. → `Files.list()`/`Files.walk()`는 **Stream으로 지연
+   순회**(필요한 만큼만)해 메모리·성능이 낫다.
+
+5. **다른 파일 시스템으로 확장 불가.** `File`은 OS 기본 파일 시스템에 박혀 있었다. → NIO.2는
+   `FileSystem`/`Path` 추상화를 도입해, ZIP 안의 경로나 메모리 파일 시스템 등 **다양한 파일 시스템을
+   같은 API로** 다룰 수 있게 했다(`FileSystems.newFileSystem(...)`).
+
+한 줄 요약: NIO.2는 `File`의 **① 실패 원인 불명(boolean) ② 경로/조작 책임 혼재 ③ 빈약한 메타데이터·
+링크 지원 ④ 비효율적 대용량 순회 ⑤ 확장 불가**를 해결하려고, **경로(Path)와 조작(Files)을 분리하고
+예외 기반·Stream 기반·플랫폼 추상화**로 다시 설계한 것이다.
+
 ### ★ IO vs NIO API 구분 — 패키지·클래스로 알아본다
 "어떤 게 옛 IO고 어떤 게 NIO냐"는 **패키지 이름**으로 거의 구분된다.
 - **옛 IO** = `java.io.*` (클래스명에 `File`, `Stream`, `Reader`, `Writer`가 붙음)
