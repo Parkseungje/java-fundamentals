@@ -26,6 +26,56 @@ PART 4.2 I/O의 데코레이터 패턴과 같은 구조다.
   저장/복원한다(`writeInt`/`readInt`, `writeUTF`/`readUTF` ...). CSV처럼 문자열로 바꿔 저장 후 파싱할
   필요가 없다. 단 **쓴 순서/타입 그대로** 읽어야 한다.
 
+#### DataStream 안 쓸 때(수동 파싱) vs 쓸 때 — 코드로 비교
+회원 정보(이름 String, 나이 int, 키 double, 활성여부 boolean)를 파일에 저장했다 읽는 상황을 보자.
+
+**안 쓸 때 — 문자열(CSV)로 저장하고 직접 파싱 (불편)**
+```java
+// 저장: 모든 값을 문자열로 바꿔 콤마로 연결
+String line = "홍길동" + "," + 30 + "," + 175.5 + "," + true;
+Files.writeString(file, line);   // "홍길동,30,175.5,true"
+
+// 읽기: 직접 쪼개고(split), 타입마다 일일이 변환(parse)해야 한다
+String[] parts = Files.readString(file).split(",");
+String name = parts[0];
+int age = Integer.parseInt(parts[1]);       // 문자열 -> int (실패하면 NumberFormatException)
+double height = Double.parseDouble(parts[2]); // 문자열 -> double
+boolean active = Boolean.parseBoolean(parts[3]);
+```
+불편한 점:
+- **타입마다 수동 변환**(`Integer.parseInt`/`Double.parseDouble`...)이 필요하고, 값이 이상하면 예외.
+- **구분자 충돌**: 이름에 콤마(`,`)가 들어가면 split이 깨진다(`"홍,길동"` → 파싱 어긋남).
+- **순서·개수 실수**에 취약: `parts[1]`/`parts[2]`를 헷갈리면 엉뚱한 값을 엉뚱한 타입으로 파싱.
+- 숫자가 **문자열로 저장**되어 정밀도/포맷 문제(예: double 표기)나 용량 비효율이 생길 수 있다.
+
+**쓸 때 — DataStream으로 타입 그대로 저장/복원 (편함)**
+```java
+// 저장: 타입별 메서드로 그대로 기록
+try (DataOutputStream out = new DataOutputStream(new FileOutputStream(file))) {
+    out.writeUTF("홍길동");   // String
+    out.writeInt(30);        // int
+    out.writeDouble(175.5);  // double
+    out.writeBoolean(true);  // boolean
+}
+
+// 읽기: '쓴 순서대로' 타입별 메서드로 바로 복원 (split도 parse도 불필요)
+try (DataInputStream in = new DataInputStream(new FileInputStream(file))) {
+    String name = in.readUTF();        // 바로 String
+    int age = in.readInt();            // 바로 int
+    double height = in.readDouble();   // 바로 double
+    boolean active = in.readBoolean(); // 바로 boolean
+}
+```
+편한 점:
+- **파싱·타입 변환 불필요**: `readInt()`가 곧바로 int를 준다(NumberFormatException 걱정 없음).
+- **구분자 문제 없음**: 콤마로 나누는 게 아니라 타입별 길이/포맷으로 저장되므로, 이름에 콤마가 있어도 안전.
+- **타입이 코드로 명확**: `readInt`/`readDouble`처럼 읽는 타입이 메서드에 드러나 실수가 준다.
+- 숫자가 **이진 형태**로 저장돼 정밀도/용량에 유리.
+
+단점/주의: DataStream 파일은 **사람이 열어 읽기 어렵다**(바이너리). 또 **쓴 순서·타입과 정확히 같은
+순서·타입으로** 읽어야 한다(`writeInt` 했으면 `readInt`). 사람이 읽어야 하거나 다른 시스템과 교환하는
+포맷이 필요하면 CSV/JSON이 낫고, **자바끼리 기본 타입을 간편·정확히 주고받을 땐 DataStream이 편하다.**
+
 ---
 
 ## 2. 실습으로 확인하기
