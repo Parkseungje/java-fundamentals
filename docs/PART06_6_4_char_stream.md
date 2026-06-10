@@ -13,6 +13,49 @@
 그래서 한글(UTF-8 3바이트)도 `read()`가 한 번에 '한 글자'를 돌려준다(바이트 조각이 아니라).
 → 6.3의 한글 깨짐이 해결된다.
 
+### read() vs readLine() — "한 글자씩"이냐 "한 줄씩"이냐
+같은 읽기지만 단위가 다르다.
+
+| 메서드 | 소속 | 단위 | 반환 | 끝(EOF) |
+|---|---|---|---|---|
+| `read()` | Reader | **문자 1개** | int (문자 코드 0~65535) | `-1` |
+| `read(char[] buf)` | Reader | 문자 여러 개 | 읽은 문자 수 n | `-1` |
+| `readLine()` | BufferedReader | **한 줄(String)** | String (줄바꿈 제외) | `null` |
+
+- **`read()`** 는 `Reader`의 기본 메서드로, **문자 하나**를 int(문자 코드)로 반환한다. EOF면 -1.
+  바이트 스트림의 `read()`(0~255 바이트)와 형태는 같지만, 이쪽은 **'바이트'가 아니라 '문자'** 를
+  돌려준다는 점이 핵심이다(인코딩 해석 후이므로 한글도 한 글자로 옴).
+- **`readLine()`** 은 `BufferedReader`가 제공하는 메서드로, **한 줄 전체를 String**으로 돌려준다.
+  더 읽을 줄이 없으면 `null`을 반환한다(read()의 -1과 다름!).
+
+### readLine()의 원리 — "내부에서 read()를 줄바꿈까지 모아준다"
+`readLine()`이 마법으로 한 줄을 읽는 게 아니다. **내부적으로 `read()`로 문자를 하나씩 읽다가,
+줄바꿈 문자(`\n`, `\r`, `\r\n`)를 만나면 거기까지 모은 문자들을 String으로 만들어 반환**한다.
+개념적으로 이런 동작이다:
+
+```java
+// readLine()이 내부에서 하는 일(개념 단순화)
+String readLine() {
+    StringBuilder sb = new StringBuilder();
+    int c;
+    while ((c = read()) != -1) {     // 문자를 하나씩 읽다가
+        if (c == '\n') return sb.toString();  // 줄바꿈을 만나면 거기까지를 한 줄로 반환
+        if (c == '\r') { /* \r\n 처리: 다음이 \n이면 같이 소비 */ continue; }
+        sb.append((char) c);          // 줄바꿈 전까지 모은다
+    }
+    return sb.length() > 0 ? sb.toString() : null; // 더 없으면 null
+}
+```
+
+포인트:
+- 반환되는 String에는 **줄바꿈 문자가 포함되지 않는다**(구분자로만 쓰고 버린다).
+- 그래서 줄 단위로 읽을 땐 `while ((line = br.readLine()) != null)` 패턴을 쓴다(끝이 **null**).
+- `readLine()`은 `BufferedReader`에만 있다(내부 버퍼가 있어야 줄바꿈까지 효율적으로 모을 수 있으므로).
+  그래서 보통 `new BufferedReader(new InputStreamReader(in, UTF_8))`로 감싼다.
+
+언제 무엇을: **줄 단위(로그·CSV·텍스트 파일)** 면 `readLine()`이 편하고, **문자 단위 정밀 처리**가
+필요하면 `read()`를 쓴다.
+
 ### FileReader vs InputStreamReader — 인코딩을 명시할 수 있느냐
 Reader가 한글을 제대로 읽으려면 **'파일이 저장된 인코딩'과 'Reader가 해석할 인코딩'이 일치**해야 한다.
 - **FileReader(옛 API)**: 인코딩을 못 받고 **플랫폼 기본 charset**을 쓴다(Windows 한국어=MS949 등).
