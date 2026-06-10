@@ -175,6 +175,65 @@ try (BufferedReader br = Files.newBufferedReader(path, StandardCharsets.UTF_8)) 
 - **네트워크·동시접속·논블로킹** → NIO Channel + Selector (6.2)
 - 옛 `java.io.File`/`FileReader`는 레거시 코드에서 보게 되지만, 신규 코드는 `Path`/`Files` 우선.
 
+### ★ 비슷한 이름 총정리 — 스트림 클래스/메서드 (IO vs NIO 구분)
+`BufferedInputStream`, `DataInputStream`, `newInputStream`... 이름이 비슷해 헷갈린다. **세 그룹**으로
+나눠서 보면 정리된다: ① 기반 스트림(java.io) ② 보조 스트림(java.io, 기반을 '감싸서' 기능 추가)
+③ NIO.2 헬퍼(java.nio.file.Files의 static 메서드).
+
+**(A) InputStream 계열 (바이트 '읽기')**
+
+| 이름 | 분류 | 역할 |
+|---|---|---|
+| `InputStream` | java.io (추상) | 모든 바이트 입력의 부모 |
+| `FileInputStream` | java.io (기반) | 파일에서 바이트 읽기 (직접 소스) |
+| `ByteArrayInputStream` | java.io (기반) | 메모리 byte[]에서 읽기 |
+| `BufferedInputStream` | java.io (보조) | 다른 InputStream을 감싸 **버퍼링**(시스템 콜 ↓, 6.5) |
+| `DataInputStream` | java.io (보조) | 감싼 스트림에서 **기본 타입**(int/double/UTF) 읽기(`readInt` 등, 6.5) |
+| `ObjectInputStream` | java.io (보조) | **객체 역직렬화**(`readObject`, 6.6) |
+| `Files.newInputStream(path)` | **NIO.2 (헬퍼)** | Path로 InputStream을 바로 연다(`toFile()` 불필요) |
+
+**(B) OutputStream 계열 (바이트 '쓰기')** — 위와 1:1 대응
+
+| 이름 | 분류 | 역할 |
+|---|---|---|
+| `OutputStream` | java.io (추상) | 모든 바이트 출력의 부모 |
+| `FileOutputStream` | java.io (기반) | 파일에 바이트 쓰기 (append 옵션 있음, 6.3) |
+| `ByteArrayOutputStream` | java.io (기반) | 메모리 byte[]에 쓰기 |
+| `BufferedOutputStream` | java.io (보조) | 감싸서 **버퍼링**(모아서 한 번에, 6.5) |
+| `DataOutputStream` | java.io (보조) | **기본 타입** 쓰기(`writeInt`/`writeUTF`, 6.5) |
+| `ObjectOutputStream` | java.io (보조) | **객체 직렬화**(`writeObject`, 6.6) |
+| `Files.newOutputStream(path)` | **NIO.2 (헬퍼)** | Path로 OutputStream을 바로 연다 |
+
+> **기반 vs 보조 구분법**: 생성자에 **다른 스트림을 받으면 보조**(`new BufferedInputStream(다른스트림)`),
+> **파일/배열 등 실제 소스를 받으면 기반**(`new FileInputStream(file)`). 보조는 혼자 못 쓰고 기반을 감싼다.
+> 전형적 조합: `new DataInputStream(new BufferedInputStream(new FileInputStream(f)))`
+> — "파일에서(기반) → 버퍼링하며(보조) → 타입별로 읽기(보조)".
+
+**(C) 문자 스트림 — Reader/Writer (바이트가 아니라 '문자', 6.4)**
+
+| 이름 | 분류 | 역할 |
+|---|---|---|
+| `FileReader`/`FileWriter` | java.io (기반) | 파일 문자 읽기/쓰기(기본 charset — 인코딩 명시 불가가 함정) |
+| `InputStreamReader`/`OutputStreamWriter` | java.io (보조/다리) | **바이트 스트림 ↔ 문자 스트림** 변환(charset 명시 가능) |
+| `BufferedReader`/`BufferedWriter` | java.io (보조) | 버퍼링 + **`readLine()`** 제공(6.4) |
+| `Files.newBufferedReader(path, cs)` | **NIO.2 (헬퍼)** | Path로 BufferedReader를 바로 연다 |
+
+**메서드 빠른 참조 (이름이 헷갈릴 때)**
+
+| 하고 싶은 것 | 옛 IO | NIO.2 (Files static) |
+|---|---|---|
+| 바이트 1개 읽기 | `inputStream.read()` | (스트림 열어서 동일) |
+| 바이트 배열로 다 읽기 | `inputStream.readAllBytes()` | `Files.readAllBytes(path)` |
+| 한 줄 읽기 | `bufferedReader.readLine()` | `Files.readAllLines(path)`(전체 줄) |
+| 문자열 전체 읽기 | (직접 모아야) | `Files.readString(path)` ✅ 가장 간단 |
+| 바이트 쓰기 | `outputStream.write(bytes)` | `Files.write(path, bytes)` |
+| 문자열 쓰기 | `writer.write(s)` | `Files.writeString(path, s)` ✅ |
+| 타입별(int/double) 저장 | `DataOutputStream.writeInt(...)` | (없음 — DataStream 사용) |
+| 객체 저장 | `ObjectOutputStream.writeObject(...)` | (없음 — ObjectStream 사용) |
+
+핵심 한 줄: **`new Xxx...Stream`(java.io) = 기반/보조 스트림(직접 조립), `Files.newXxx`/`Files.readXxx`
+(java.nio.file) = NIO.2 헬퍼(간편)**. `Data`/`Object`/`Buffered`로 시작하면 보조 스트림(뭔가를 감싸는 것)이다.
+
 ---
 
 ## 2. 실습으로 확인하기
