@@ -5,6 +5,18 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **스레드 통신**: 한 스레드가 '조건이 될 때까지 기다리고', 다른 스레드가 '깨워서' 협력하게 하는 것.
+- **생산자-소비자(producer-consumer)**: 한쪽(생산자)은 데이터를 만들어 넣고, 다른 쪽(소비자)은 꺼내 쓰는 대표 협력 문제.
+- **wait() / notify() / notifyAll()**: 객체 모니터 기반 대기/깨움. (synchronized 블록 안에서만 호출, 조건은 while로 재확인)
+- **spurious wakeup(가짜 깨어남)**: wait가 이유 없이 깨어날 수 있는 현상. 그래서 깬 뒤 조건을 'while'로 다시 확인해야 한다.
+- **Condition**: ReentrantLock과 함께 쓰는 '대기 줄'. notFull/notEmpty처럼 여러 조건을 분리해 필요한 쪽만 깨운다(await/signal).
+- **BlockingQueue**: 가득 차면 put이, 비면 take가 '알아서 블록'되는 동시성 안전 큐. wait/notify를 직접 안 써도 된다(실무 표준).
+
+한 줄 그림: **생산자-소비자를 wait/notify(저수준) → Condition(대기 줄 분리) → BlockingQueue(고수준, 알아서 블록)로 푼다. 원리는 wait/notify로 이해하되 실무는 BlockingQueue.**
+
+---
+
 ## 1. 학습 내용 — 스레드 간 "기다림과 깨움"
 
 스레드 통신의 대표 문제는 **생산자-소비자(producer-consumer)**다. 용량이 정해진 버퍼에 생산자는 넣고

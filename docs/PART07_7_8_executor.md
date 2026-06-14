@@ -5,6 +5,19 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **스레드풀(thread pool)**: 미리 만들어 둔 소수의 스레드를 '재사용'하며 작업을 처리하는 구조. 매번 스레드를 만드는 비용을 없앤다.
+- **ExecutorService**: 스레드풀의 표준 인터페이스. `submit(작업)`으로 작업을 맡기고 `shutdown()`으로 닫는다.
+- **Executors(팩토리)**: 풀을 만드는 도구. `newFixedThreadPool(n)`(고정), `newCachedThreadPool()`(가변), `newSingleThreadExecutor()`(1개).
+- **작업 큐(work queue)**: 제출된 작업이 대기하는 줄. 노는 스레드가 꺼내 실행한다. 내부적으로 BlockingQueue(7.7).
+- **Runnable vs Callable**: Runnable은 결과 없음(void)·예외 못 던짐 / Callable<V>는 V 반환·예외 가능.
+- **Future<V>**: '미래에 올 결과를 담는 약속'. `get()`으로 결과를 받는다(준비될 때까지 블로킹).
+- **shutdown()**: 풀을 닫는 것. 안 하면 풀 스레드가 살아 있어 JVM이 안 끝난다.
+
+한 줄 그림: **스레드풀(ExecutorService)은 소수 스레드를 재사용해 생성 비용·폭증을 막는다. 결과가 필요하면 Callable+Future를 쓰고, 다 쓰면 shutdown() 필수.**
+
+---
+
 ## 1. 학습 내용 — 스레드풀과 결과 받기
 
 ### 왜 스레드풀인가 — 직접 생성의 문제

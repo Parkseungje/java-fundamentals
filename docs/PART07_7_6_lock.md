@@ -5,6 +5,19 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **락(lock)**: 공유 자원에 한 번에 하나만 들어가게 하는 '자물쇠'. synchronized는 암묵적 락, ReentrantLock은 명시적 락.
+- **ReentrantLock**: 직접 `lock()`/`unlock()` 하는 명시적 락. synchronized와 같은 효과 + 추가 기능. (unlock은 반드시 finally에서)
+- **Reentrant(재진입 가능)**: 같은 스레드가 이미 쥔 락을 다시 lock()해도 되는 성질.
+- **tryLock()**: 락을 '시도'하고 못 얻으면 기다리지 않고 false 반환(또는 시간 제한). 무한 대기 회피·데드락 회피에 사용.
+- **데드락(deadlock, 교착 상태)**: 두 스레드가 서로가 쥔 락을 기다리며 영원히 멈추는 상황(락 순서 엇갈림).
+- **공정 락(fair lock)**: 먼저 기다린 스레드가 먼저 락을 얻게 보장(`new ReentrantLock(true)`).
+- **LockSupport**: park()/unpark()로 스레드를 멈추고 깨우는 저수준 도구(ReentrantLock의 내부 부품).
+
+한 줄 그림: **ReentrantLock은 synchronized의 한계(무한 대기·인터럽트 불가·불공정)를 tryLock·lockInterruptibly·fair로 보완한다. 데드락은 락 순서 엇갈림이 원인이고, tryLock으로 회피한다.**
+
+---
+
 ## 1. 학습 내용 — 명시적 락과 데드락
 
 ### LockSupport (저수준 도구)
