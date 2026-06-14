@@ -19,31 +19,82 @@
 
 ## 1. 학습 내용 — 스레드 간 "기다림과 깨움"
 
-스레드 통신의 대표 문제는 **생산자-소비자(producer-consumer)**다. 용량이 정해진 버퍼에 생산자는 넣고
-소비자는 꺼내는데, **버퍼가 가득 차면 생산자가 대기**하고, **비면 소비자가 대기**해야 한다. 이 "기다림/
-깨움"을 어떻게 구현하느냐가 세 도구로 진화한다.
+### 1-0. 출발점 — 왜 '통신'이 필요한가 (busy-wait의 낭비)
+지금까지(7.5/7.6)는 "여러 스레드가 공유 자원을 안전하게 '동시에' 만지는" 문제였다. 이번엔 다른 종류의
+협력이다 — **한 스레드가 "어떤 조건이 될 때까지 기다렸다가" 다른 스레드가 "조건을 만들고 깨워주는"** 것.
 
-### wait / notify (저수준, 객체 모니터)
-- `wait()`: 가진 락을 **놓고** 대기 상태로 들어간다(다른 스레드가 락을 쓸 수 있게).
-- `notify()`/`notifyAll()`: 그 객체에서 wait 중인 스레드를 깨운다(All은 전부).
-- **규칙 3가지**:
-  1. 반드시 **synchronized 블록 안**(그 객체의 락을 쥔 상태)에서 호출.
-  2. 조건 검사는 `if`가 아니라 **`while`** — 깨어나도 조건이 또 안 맞을 수 있다(spurious wakeup, 또는
-     다른 스레드가 먼저 가져감). 그래서 깨면 **다시 확인**해야 한다.
-  3. 보통 **`notifyAll`** — 한 모니터를 생산자/소비자가 공유하므로, notify로 아무나 깨우면 엉뚱한 쪽만
-     깨워 멈출 수 있다.
+대표 문제가 **생산자-소비자(producer-consumer)**다. 용량이 정해진 버퍼(상자)에 생산자는 데이터를 넣고
+소비자는 꺼낸다. 그런데:
+- 버퍼가 **가득 차면** 생산자는 빈자리가 생길 때까지 **기다려야** 하고,
+- 버퍼가 **비면** 소비자는 데이터가 들어올 때까지 **기다려야** 한다.
 
-### Condition (ReentrantLock과 함께)
-wait/notify는 객체 하나의 모니터라 **대기 줄이 하나뿐**이라 notifyAll로 전부 깨워야 한다(낭비).
-`ReentrantLock.newCondition()`은 한 락에 **여러 대기 줄**을 만든다.
-- `notFull`(생산자 줄) / `notEmpty`(소비자 줄)로 분리 → `signal()`로 **필요한 쪽만** 정확히 깨운다.
-- 대응: `wait()`→`await()`, `notify()`→`signal()`, `notifyAll()`→`signalAll()`. unlock은 finally에서(7.6).
+이 "기다림"을 어떻게 구현할까? 가장 순진한 방법은 **계속 확인하며 도는 것**이다:
+```java
+while (버퍼가 가득 참) { }   // 빈자리 날 때까지 계속 확인 (busy-wait / 바쁜 대기)
+```
+하지만 이건 **CPU를 100% 태우며 헛도는** 끔찍한 낭비다(스핀). 차라리 "조건이 안 되면 **잠들었다가**,
+조건이 되면 **누가 깨워주는**" 방식이 필요하다. 그게 스레드 통신이고, 아래 세 도구로 진화한다.
 
-### BlockingQueue (고수준, 실무 표준)
-위의 "용량 제한 버퍼 + 대기/깨움" 로직은 `java.util.concurrent.BlockingQueue`에 이미 다 들어 있다.
-- `put(x)`: 가득 차면 **알아서 블록**(대기). `take()`: 비면 **알아서 블록**.
-- 락·wait·notify·while을 **한 줄도 안 써도** 내부적으로 정확히 처리한다. (Executor 스레드풀도 작업 큐로
-  BlockingQueue를 쓴다 — 7.8)
+### 1-1. wait / notify — 객체 모니터 기반의 바닥 도구
+**무엇**: 모든 객체가 가진 모니터(7.5의 락)에 딸린 '대기실'을 이용해, 스레드를 재우고(wait) 깨운다(notify).
+- `wait()`: **가진 락을 놓고** 대기 상태로 잠든다. (락을 놓아야 다른 스레드가 그 락으로 들어와 조건을 바꿀 수 있다!)
+- `notify()` / `notifyAll()`: 그 객체에서 wait 중인 스레드를 하나만 / 전부 깨운다.
+
+**전형적 패턴 (생산자-소비자 버퍼)**:
+```java
+synchronized void put(int x) throws InterruptedException {
+    while (queue.size() == capacity) wait();   // 가득 차면 -> 락 놓고 잠
+    queue.add(x);
+    notifyAll();                               // 넣었으니 기다리던 소비자를 깨움
+}
+synchronized int take() throws InterruptedException {
+    while (queue.isEmpty()) wait();            // 비면 -> 락 놓고 잠
+    int v = queue.poll();
+    notifyAll();                               // 꺼냈으니 기다리던 생산자를 깨움
+    return v;
+}
+```
+
+**꼭 지켜야 할 규칙 3가지 (각각 '왜'가 있다)**:
+1. **반드시 synchronized 블록 안에서** 호출. wait/notify는 그 객체의 락을 쥔 상태에서만 쓸 수 있다(안 그러면
+   `IllegalMonitorStateException`). "락을 놓고 잔다"는 동작 자체가 락을 쥐고 있어야 성립하기 때문.
+2. **조건은 `if`가 아니라 `while`로 검사.** 깨어났다고 조건이 충족됐다는 보장이 없다 — (a) **spurious
+   wakeup**(이유 없이 깨는 현상)이 있고, (b) 깨어나 락을 다시 얻는 사이 **다른 스레드가 먼저 자원을 가져갈**
+   수 있다. 그래서 깬 뒤 조건을 **다시 확인**해야 한다. (if로 쓰면 조건이 안 맞는데도 진행해 버그.)
+3. **보통 `notifyAll`을 쓴다.** 한 객체의 모니터(대기실)를 생산자·소비자가 **함께** 쓰므로, `notify`로 한
+   명만 깨우면 하필 '엉뚱한 쪽'(예: 또 다른 생산자)만 깨워 아무도 진행 못 하고 멈출 수 있다. notifyAll로
+   전부 깨우면 그중 조건 맞는 스레드가 진행한다(나머지는 다시 while에서 잠).
+
+> ★ 헷갈리는 지점 — "wait()는 sleep()과 뭐가 다른가?" `Thread.sleep`은 **락을 쥔 채** 잠들어(다른 스레드가
+> 그 락으로 못 들어옴) 정해진 시간 후 스스로 깬다. `wait()`는 **락을 놓고** 잠들어(다른 스레드가 들어와
+> 조건을 바꿀 수 있음) notify로 깨워질 때까지 기다린다. 통신엔 wait이 맞다.
+
+### 1-2. Condition — 대기 줄을 나눠 '필요한 쪽만' 깨우기
+wait/notify의 불편: 객체 하나의 모니터라 **대기실(대기 줄)이 하나뿐**이다. 생산자와 소비자가 같은 줄에서
+섞여 기다리니, 정확히 한쪽만 콕 깨울 수 없어 `notifyAll`로 전부 깨우는 낭비가 생긴다.
+
+`ReentrantLock.newCondition()`(7.6 락과 함께)은 한 락에 **여러 개의 대기 줄(Condition)**을 만들 수 있다.
+```java
+ReentrantLock lock = new ReentrantLock();
+Condition notFull  = lock.newCondition();   // 생산자 대기 줄
+Condition notEmpty = lock.newCondition();   // 소비자 대기 줄
+
+// put: while(가득) notFull.await();  ...  notEmpty.signal();  // 소비자만 콕 깨움
+// take: while(빔)  notEmpty.await(); ...  notFull.signal();   // 생산자만 콕 깨움
+```
+대응 관계: `wait()`→`await()`, `notify()`→`signal()`, `notifyAll()`→`signalAll()`. (unlock은 7.6처럼 finally에서.)
+대기 줄이 나뉘어 있으니 **필요한 쪽만 정확히 깨워** notifyAll 낭비가 사라진다.
+
+### 1-3. BlockingQueue — 이 모든 걸 캡슐화한 고수준 도구 (실무 표준)
+위의 "용량 제한 버퍼 + 가득/빔 대기 + 깨움" 로직은 `java.util.concurrent.BlockingQueue`에 **이미 다 구현돼**
+있다. 우리가 락·wait·notify·while을 한 줄도 안 써도 된다.
+```java
+BlockingQueue<Integer> q = new ArrayBlockingQueue<>(3);
+q.put(x);        // 가득 차면 '알아서' 블록(대기)했다가 자리 나면 넣음
+int v = q.take(); // 비면 '알아서' 블록했다가 데이터 들어오면 꺼냄
+```
+원리는 wait/notify(또는 Condition)로 이해하되, **실무에선 BlockingQueue를 쓴다** — 직접 짜면 notify 누락·
+if 오용 같은 버그가 나기 쉽지만, BlockingQueue는 검증돼 있어 안전하다. (7.8의 스레드풀도 내부 작업 큐로 이걸 쓴다.)
 
 ---
 
@@ -105,3 +156,15 @@ notifyAll·synchronized)을 직접 지켜야 해 실수하기 쉽다(예시1). *
 - **Q. 실무에서 생산자-소비자를 직접 wait/notify로 짜기보다 BlockingQueue를 쓰는 이유는?**
   - 내 답: BlockingQueue가 락/대기/깨움을 검증된 형태로 캡슐화해, put/take만으로 안전하다. 직접
     짜면 notify 누락·if 오용 같은 버그가 나기 쉽다. (Example3)
+
+- **Q. busy-wait(`while(조건){}`로 계속 확인)는 왜 나쁜가?**
+  - 내 답: 조건이 될 때까지 CPU를 100% 태우며 헛돈다(낭비). wait/notify는 조건이 안 되면 잠들었다가
+    깨워질 때만 동작해 CPU를 안 쓴다. (1-0)
+
+- **Q. wait()와 Thread.sleep()의 결정적 차이는?**
+  - 내 답: wait()는 '락을 놓고' 잠들어 다른 스레드가 들어와 조건을 바꿀 수 있고 notify로 깨워진다.
+    sleep()은 '락을 쥔 채' 정해진 시간만 잔다. 통신엔 wait()가 맞다. (1-1)
+
+- **Q. notify 대신 notifyAll을 쓰는 이유는?**
+  - 내 답: 생산자·소비자가 한 모니터(대기실)를 공유하므로, notify로 한 명만 깨우면 엉뚱한 쪽만 깨워
+    멈출 수 있다. notifyAll로 전부 깨우면 조건 맞는 쪽이 진행한다. (Condition은 줄을 나눠 이 문제를 해결.) (1-1, 1-2)
