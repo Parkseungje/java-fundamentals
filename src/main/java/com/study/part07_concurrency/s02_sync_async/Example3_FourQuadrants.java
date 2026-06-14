@@ -60,7 +60,10 @@ public class Example3_FourQuadrants {
                     done.countDown();
                 });
         System.out.println("    호출자는 안 멈추고 바로 다음 일 진행(결과는 콜백이 나중에 처리)");
-        done.await(); // 데모 종료용 대기
+        // ★ done.await()는 데모용 장치다(Example2 참고). 비동기의 일부가 아니라, main이 먼저 끝나
+        //   JVM이 종료되면 콜백이 실행되기도 전에 죽으므로 '콜백이 끝날 때까지만' 붙잡아두는 것이다.
+        //   실무 비동기에선 이렇게 막지 않는다(웹 서버는 계속 떠 있어 불필요). docs PART07_7_2 참고.
+        done.await(); // (데모 종료용) 콜백이 끝날 때까지만 main을 붙잡아둠
 
         System.out.println();
         System.out.println("[4분면 정리]");
