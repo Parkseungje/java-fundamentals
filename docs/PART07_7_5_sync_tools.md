@@ -78,6 +78,57 @@ class Counter {
 - 락은 **객체당 하나**다. 그래서 같은 객체의 synchronized 메서드들은 이 락 하나를 공유한다(한 객체 =
   한 번에 한 스레드). 다른 객체는 락이 별개라 동시에 가능.
 
+#### synchronized는 '객체를 잠그는' 게 아니다 — synchronized끼리만 막는다 (★ 중요 오해)
+"메서드 하나에 synchronized를 붙이면 그 객체 전체가 잠긴다"고 오해하기 쉽다. **아니다.**
+- synchronized가 붙어도 객체가 **항상/통째로 잠겨 있는 게 아니다.** 그 구간을 **실행하는 그 순간에만**
+  락을 잡고, 끝나면 바로 푼다.
+- 락은 **"같은 락을 잡으려는 다른 synchronized 코드"만** 막는다. **락을 안 잡는 코드는 전혀 안 막힌다.**
+
+스레드A가 `counter.increment()`(synchronized) 실행 중(this 락 쥠)일 때, 스레드B는:
+
+| 스레드B의 동작 | 막히나? | 이유 |
+|---|---|---|
+| `counter.increment()` (synchronized) | ✅ 막힘 | 같은 this 락을 기다림 |
+| 같은 객체의 다른 synchronized 메서드 | ✅ 막힘 | 같은 this 락 |
+| `counter.get()` (synchronized **없음**) | ❌ 안 막힘 | 락을 안 잡으므로 그냥 실행 |
+| `counter.count` 직접 접근/수정 | ❌ 안 막힘 | 락과 무관 |
+| **다른** Counter 객체의 synchronized | ❌ 안 막힘 | 락이 별개(객체당 하나) |
+
+→ 즉 "객체 전체가 잠긴다"가 아니라 **"그 객체의 락을 잡으려는 synchronized 코드들끼리만 줄 세운다"**이다.
+비유: 회의실 열쇠는 '열쇠를 받기로 한 사람들끼리의 약속'이지, 회의실 문을 물리적으로 잠그는 게 아니다.
+열쇠 안 받는 사람(synchronized 없는 코드)은 그냥 들어가 버린다.
+
+> ★ 그래서 생기는 함정 — **읽기/쓰기 '모든' 접근을 같은 락으로 보호해야 한다.** 예를 들어 `increment()`만
+> synchronized이고 `get()`엔 안 붙이면, increment가 도는 중에 get이 끼어들어 어중간하거나 옛 값(가시성 —
+> 7.4)을 읽을 수 있다. 한 곳만 막으면 구멍이 생긴다.
+> ```java
+> synchronized void increment() { count++; }
+> synchronized int get() { return count; }   // 읽기도 같은 락으로 보호해야 안전
+> ```
+
+#### synchronized는 어디에 붙일 수 있나 — 메서드 / 블록 (변수엔 ❌)
+synchronized는 **'코드 구간'을 보호**하는 것이라, 코드(메서드·블록)에만 붙는다. **변수에는 못 붙인다.**
+
+| 붙이는 곳 | 가능? | 락 대상 |
+|---|---|---|
+| 인스턴스 메서드 | ✅ | `this`(그 객체) |
+| static 메서드 | ✅ | 그 클래스의 Class 객체 |
+| `synchronized(obj){ }` 블록 | ✅ | 내가 지정한 obj(`this`/전용 락 객체/`클래스.class`) |
+| **변수/필드** | ❌ 컴파일 에러 | (변수 보호는 `volatile` 또는 그 변수를 만지는 코드를 synchronized로 감싸기) |
+| 클래스 선언 자체 | ❌ | — |
+
+```java
+// 블록 + 전용 락 객체 (실무에서 자주 권장)
+private final Object lock = new Object();
+void increment() {
+    synchronized (lock) { count++; }   // this 대신 전용 자물쇠 -> 외부가 this로 락 거는 것과 충돌 방지
+}
+```
+- **메서드 vs 블록**: 메서드 전체가 보호 대상이면 메서드(간결). 일부만 보호하거나 전용 락 객체를 쓰려면
+  블록(락 잡는 구간이 짧아 더 빠름).
+- **변수 보호는 synchronized로 직접 못 한다** → 가시성만 필요하면 `volatile`, 원자성까지면 그 변수를
+  만지는 코드를 synchronized/Atomic으로 감싼다.
+
 **한계 3가지** (그래서 7.6 ReentrantLock이 등장):
 1. **무한 대기** — 락을 얻을 때까지 무조건 기다린다(타임아웃을 못 건다).
 2. **인터럽트 불가** — 대기 중인 스레드를 중간에 깨워 취소시킬 수 없다.
@@ -222,6 +273,15 @@ java -cp build/classes/java/main com.study.part07_concurrency.s05_sync_tools.Exa
 - **Q. 락은 객체에 달리는데 왜 synchronized는 '메서드'에 붙이나?**
   - 내 답: synchronized 위치 = '보호할 코드 구간'(메서드/블록), 락 대상 = '객체(this)'로 둘은 다른 얘기다.
     `synchronized 메서드`는 `synchronized(this){메서드 전체}`의 축약일 뿐이라, 더 좁게는 블록에 붙일 수도 있다. (1-1)
+
+- **Q. 메서드 하나에 synchronized를 붙이면 그 객체 전체가 잠기나?**
+  - 내 답: 아니다. 실행하는 그 순간에만 락을 잡고 푼다. 그리고 '같은 락을 잡으려는 synchronized 코드끼리'만
+    막힌다 — synchronized 없는 메서드나 필드 직접 접근은 안 막힌다. 그래서 공유 변수는 읽기/쓰기 모든 접근을
+    같은 락으로 보호해야 한다(한 곳만 붙이면 구멍). (1-1)
+
+- **Q. synchronized는 어디에 붙일 수 있나? 변수에도 되나?**
+  - 내 답: 메서드와 블록(`synchronized(obj){}`)에만 붙는다. 변수에는 못 붙인다(컴파일 에러) — synchronized는
+    '코드 구간'을 보호하는 것이라서. 변수 보호는 volatile(가시성)이나, 그 변수를 만지는 코드를 synchronized로 감싼다. (1-1)
 
 - **Q. CAS는 락이 없는데 어떻게 안전한가?**
   - 내 답: "비교 후 교체(compare-and-swap)"가 CPU가 보장하는 원자적 명령이라 그 순간엔 끼어들 수 없다.
