@@ -65,6 +65,31 @@ synchronized int take() throws InterruptedException {
    명만 깨우면 하필 '엉뚱한 쪽'(예: 또 다른 생산자)만 깨워 아무도 진행 못 하고 멈출 수 있다. notifyAll로
    전부 깨우면 그중 조건 맞는 스레드가 진행한다(나머지는 다시 while에서 잠).
 
+> ★ 헷갈리는 지점 — "notify(깨우기) vs unlock(락 풀기)은 다른 건가?" → **완전히 다른 일이고, 보통 둘 다
+> 일어나야 한다.** 통신에는 두 종류의 '기다림'이 섞여 있다.
+> - **락을 못 얻어서 기다림** → 누가 **unlock(락 풀기)** 하면 락을 얻어 들어간다.
+> - **조건이 안 돼서 wait()로 잠듦** → 누가 **notify(깨우기)** 해야 깨어난다.
+>
+> | | notify / notifyAll | unlock |
+> |---|---|---|
+> | 하는 일 | wait()로 **자는 스레드를 깨운다** | **락을 푼다** |
+> | 비유 | 대기실에서 "자리 났어, 일어나!" | 실제로 문을 열어주기 |
+>
+> **핵심: `notify()`는 '깨우기'일 뿐 락을 넘기는 게 아니다.** 깨워진 스레드는 곧장 진행하지 못하고,
+> '대기실 → 락 대기 줄'로 옮겨가 **현재 스레드가 락을 놓을 때까지(synchronized 블록 끝 = 자동 unlock,
+> 또는 ReentrantLock의 `unlock()`) 다시 기다린다.** 그제야 락을 얻어 wait() 다음 줄부터 이어간다.
+> 그래서 깨우기(notify)와 문 열기(unlock)가 **둘 다** 있어야 통신이 완성된다.
+> ```java
+> synchronized void put(int x) {
+>     while (가득참) wait();
+>     queue.add(x);
+>     notifyAll();   // ← 깨우기만 함 (락은 아직 안 풂)
+> }                  // ← synchronized 블록 끝 = 여기서 락 '자동 unlock' → 그제야 깨워진 스레드가 락 획득
+> ```
+> 참고로 synchronized 세계에선 unlock이 '자동'이라 안 보이고(Example1), ReentrantLock 세계에선 `unlock()`이
+> 직접 보인다(Example2). 대응 관계: `wait↔await`, `notify↔signal`, `notifyAll↔signalAll`, 그리고 락 풀기는
+> 'synchronized 블록 끝(자동) ↔ ReentrantLock.unlock()(수동)'.
+
 > ★ 헷갈리는 지점 — "wait()는 sleep()과 뭐가 다른가?" `Thread.sleep`은 **락을 쥔 채** 잠들어(다른 스레드가
 > 그 락으로 못 들어옴) 정해진 시간 후 스스로 깬다. `wait()`는 **락을 놓고** 잠들어(다른 스레드가 들어와
 > 조건을 바꿀 수 있음) notify로 깨워질 때까지 기다린다. 통신엔 wait이 맞다.
@@ -168,3 +193,8 @@ notifyAll·synchronized)을 직접 지켜야 해 실수하기 쉽다(예시1). *
 - **Q. notify 대신 notifyAll을 쓰는 이유는?**
   - 내 답: 생산자·소비자가 한 모니터(대기실)를 공유하므로, notify로 한 명만 깨우면 엉뚱한 쪽만 깨워
     멈출 수 있다. notifyAll로 전부 깨우면 조건 맞는 쪽이 진행한다. (Condition은 줄을 나눠 이 문제를 해결.) (1-1, 1-2)
+
+- **Q. notify(깨우기)와 unlock(락 풀기)은 같은 건가?**
+  - 내 답: 다르다. notify는 wait()로 자는 스레드를 '깨우기'만 하고, unlock은 '락을 푸는' 것이다. notify로
+    깨워져도 그 스레드는 즉시 진행 못 하고, 락이 풀려야(synchronized 블록 끝=자동, 또는 ReentrantLock.unlock())
+    그제야 락을 얻어 이어간다. 그래서 깨우기와 락 풀기가 둘 다 일어나야 한다. (1-1)
