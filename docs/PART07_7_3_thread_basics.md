@@ -17,6 +17,14 @@
 
 전형적 흐름: `NEW → RUNNABLE → (대기 상태들) → TERMINATED`.
 
+> ★ 헷갈리기 쉬운 점 — `Thread.sleep()`은 '누가' 자나? **그 줄을 실행 중인 스레드 자신**이 잔다.
+> `Thread.sleep(...)`은 `Thread` 클래스의 **static 메서드**라, 특정 스레드 객체를 재우는 게 아니라
+> "지금 이 코드를 실행하는 현재 스레드"를 재운다. 코드에 "main"이라고 안 적혀 있어도, main 메서드에서
+> 부르면 **main이** 자고, worker의 작업(run/람다) 안에서 부르면 **worker가** 잔다. 같은 `Thread.sleep`
+> 줄이라도 누가 실행하느냐로 자는 주체가 갈린다. (그래서 main에서 `Thread.sleep`을 불러도 다른 스레드
+> worker는 안 멈춘다 — 7.2의 "제어권은 호출당한 함수/현재 스레드 기준"과 같은 맥락.)
+> - 현재 스레드 이름이 궁금하면 `Thread.currentThread().getName()`으로 확인할 수 있다(보통 "main").
+
 ### 스레드 만드는 두 방법 — Thread 상속 vs Runnable 구현
 - **Thread 상속**: `extends Thread` 후 `run()` 오버라이드. → 단일 상속을 써버려 권장 안 됨.
 - **Runnable 구현**: `Runnable`(함수형 인터페이스, 람다 가능)을 만들어 `new Thread(runnable)`. → 권장.

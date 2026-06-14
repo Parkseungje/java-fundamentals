@@ -44,7 +44,10 @@ public class Example1_ThreadStates {
         worker.start();
 
         // ★ 주의: 아래 Thread.sleep은 'worker'가 아니라 '지금 이 코드를 실행하는 main'이 잔다.
-        //   worker를 멈추는 게 아니라, main이 "언제 worker 상태를 관찰할지" 시점을 미루는 타이머일 뿐이다.
+        //   - Thread.sleep(...)은 'Thread 클래스의 static 메서드'다. 특정 객체(worker)를 재우는 게 아니라,
+        //     '이 줄을 실행 중인 스레드 자신'을 재운다. 코드에 "main"이라고 안 적혀 있어도, 이 줄을 main이
+        //     실행하므로 결과적으로 main이 잔다. (worker 람다 안의 Thread.sleep(300)은 worker가 실행하니 worker가 잔다.)
+        //   - 즉 worker를 멈추는 게 아니라, main이 "언제 worker 상태를 관찰할지" 시점을 미루는 타이머일 뿐이다.
         //   worker의 자체 일정(start 기준):  0~100ms = while 루프(RUNNABLE),  100~400ms = sleep(300)(TIMED_WAITING).
         //   그래서 main이 관찰하는 두 시점에 worker가 '하고 있는 일'이 달라 상태가 다르게 찍힌다.
 
