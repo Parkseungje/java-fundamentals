@@ -24,7 +24,10 @@ public class Example1_Synchronized {
 
         // synchronized 인스턴스 메서드: 락 대상은 '이 메서드를 호출한 Counter 객체(this)'다.
         //   - '이 인스턴스' = increment(메서드)가 아니라, 이 메서드를 가진 Counter 객체를 가리킨다.
-        //   - 즉 아래는 사실상 'void increment(){ synchronized(this){ count++; } }' 와 같다.
+        //   - 왜 메서드에 붙이나? synchronized 위치 = '보호할 코드 구간'(어디를), 락 대상 = '객체(this)'(무엇으로)
+        //     로 둘은 다른 얘기다. 메서드에 붙이는 건 보호할 코드(count++)가 메서드 안에 모여 있어서일 뿐,
+        //     아래는 사실상 'void increment(){ synchronized(this){ count++; } }' 의 축약이다.
+        //     더 좁게 보호하려면 메서드 대신 synchronized(obj){...} 블록에 붙일 수도 있다.
         //   - 락은 메서드가 아니라 '객체에 하나' 달려 있다. 그래서 같은 Counter 객체의 synchronized
         //     메서드들은 이 락 하나를 공유한다(한 객체 = 한 번에 한 스레드). 다른 Counter 객체는 락이 별개.
         synchronized void increment() {
