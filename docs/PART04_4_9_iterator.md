@@ -5,6 +5,18 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **Iterator(반복자)**: 컬렉션의 원소를 하나씩 순회하는 공통 도구. 내부 구조(배열/연결/해시)를 몰라도 같은 방식으로 돌 수 있다.
+- **hasNext() / next()**: 다음 원소가 있나? / 다음 원소를 꺼내며 한 칸 전진. 순회의 두 기본 메서드.
+- **향상된 for문(for-each)**: `for (T x : list)` 문법. 내부적으로 Iterator를 사용한다.
+- **Iterator 패턴**: "순회 방법을 컬렉션과 분리해 통일된 인터페이스로 제공"하는 디자인 패턴(다형성 활용 — 1.5).
+- **ConcurrentModificationException(CME)**: for-each/Iterator로 순회하는 '도중에' 컬렉션을 직접 add/remove하면 나는 예외.
+- **iterator.remove()**: 순회 중 안전하게 삭제하는 유일한 방법(컬렉션을 직접 remove하면 CME).
+
+한 줄 그림: **Iterator는 내부 구조와 무관하게 hasNext()/next()로 순회하게 해준다. 순회 중 컬렉션을 직접 수정하면 CME가 나니, 지울 땐 iterator.remove()를 쓴다.**
+
+---
+
 ## 1. 학습 내용 — Iterator 패턴
 
 ### 로우레벨의 불편함

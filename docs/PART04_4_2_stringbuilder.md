@@ -5,6 +5,17 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **가변(mutable) ↔ 불변(immutable)**: 내용을 바꿀 수 있음 ↔ 없음. String은 불변, StringBuilder/Buffer는 가변.
+- **StringBuilder**: 내부 버퍼에 문자를 이어 붙이는 '가변 문자열'. `append()`로 수정해도 새 객체를 안 만든다(빠름).
+- **StringBuffer**: StringBuilder와 같지만 메서드가 `synchronized`라 **스레드 안전**(대신 느림).
+- **synchronized**: 한 번에 한 스레드만 들어가게 막는 동기화(PART 7.5). StringBuffer가 이걸 써서 안전하지만 느리다.
+- **왜 필요한가**: String은 불변이라 `s += x`를 반복하면 매번 새 String 객체가 생겨 메모리·시간 낭비(4.1 문제). 가변 문자열로 해결.
+
+한 줄 그림: **문자열을 반복해서 이어 붙일 땐 StringBuilder(단일 스레드, 빠름)를 쓴다. 여러 스레드가 공유하면 StringBuffer(안전, 느림).**
+
+---
+
 ## 1. 학습 내용 — 가변 문자열의 등장
 
 ### 로우레벨의 불편함 — String += 반복

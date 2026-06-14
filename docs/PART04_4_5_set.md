@@ -5,6 +5,17 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **Set**: 중복을 허용하지 않는 모음. 같은 원소를 두 번 넣어도 하나만 유지된다.
+- **HashSet**: 해시(hashCode)로 저장. 가장 빠름(O(1)), 순서는 보장 안 됨.
+- **TreeSet**: 정렬된 상태로 저장(이진 탐색 트리). 자동 정렬되지만 약간 느림(O(log n)). 정렬 기준 필요(Comparable/Comparator — 5.2).
+- **LinkedHashSet**: HashSet + 입력 순서 유지(넣은 순서대로 순회).
+- **hashCode() / equals()**: Set의 '중복 판정'이 이 둘에 의존한다. hashCode로 후보를 찾고 equals로 최종 비교 — 그래서 둘을 같이 올바르게 재정의해야 한다(4.8).
+
+한 줄 그림: **Set은 중복을 막는다. 빠른 건 HashSet(순서 X), 정렬은 TreeSet, 입력 순서 유지는 LinkedHashSet. 중복 판정은 hashCode+equals로 한다.**
+
+---
+
 ## 1. 학습 내용 — HashSet, TreeSet, LinkedHashSet
 
 Set의 공통 성질은 **중복 불허**다. 셋의 차이는 "순회 순서"와 "내부 구조"다.

@@ -5,6 +5,20 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **Map**: 키(key)→값(value) 쌍을 저장하는 자료구조. 키로 값을 빠르게 찾는다(사전: 단어→뜻).
+- **키 / 값 / 엔트리(Entry)**: 찾는 기준(키), 저장된 데이터(값), 그리고 (키,값) 한 쌍이 엔트리.
+- **HashMap**: 해시로 저장. 가장 빠름·순서 없음·키와 값에 null 허용. 가장 많이 씀.
+- **LinkedHashMap**: HashMap + 입력 순서 유지.
+- **TreeMap**: 키를 정렬해 저장(범위 검색·정렬 순회에 유리).
+- **HashTable**: HashMap의 옛 버전(synchronized, null 불가, 느림 — 잘 안 씀).
+- **ConcurrentHashMap**: 여러 스레드가 안전하게 동시 사용하도록 만든 Map(HashTable보다 효율적, PART 7).
+- **hashCode()/equals()**: 키의 동일성 판단에 사용(Set과 동일 — 4.8).
+
+한 줄 그림: **Map은 키-값 쌍을 저장한다. 기본은 HashMap(빠름·순서X), 순서는 LinkedHashMap, 정렬은 TreeMap, 멀티스레드는 ConcurrentHashMap.**
+
+---
+
 ## 1. 학습 내용 — HashMap, LinkedHashMap, TreeMap, HashTable, ConcurrentHashMap
 
 | 구현체 | 순서 | null | Thread Safe |

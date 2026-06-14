@@ -5,6 +5,17 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **Queue(큐)**: 한쪽 끝으로 넣고 반대쪽 끝으로 빼는 줄. 기본은 **FIFO(First In First Out)** — 먼저 들어온 게 먼저 나간다(매표소 줄).
+- **Stack(스택)**: 같은 쪽으로 넣고 빼는 구조. **LIFO(Last In First Out)** — 나중에 넣은 게 먼저 나온다(접시 쌓기).
+- **Deque(덱, Double-Ended Queue)**: 양쪽 끝 모두로 넣고 뺄 수 있는 큐. 큐로도, 스택으로도 쓸 수 있다.
+- **ArrayDeque**: Deque의 대표 구현. 큐·스택 둘 다 이걸로 표현하는 게 권장(옛 Stack 클래스보다 빠름).
+- **안전 메서드 vs 강제 메서드**: 실패 시 `offer`/`poll`/`peek`은 false·null 반환(안전), `add`/`remove`/`element`는 예외를 던짐(강제).
+
+한 줄 그림: **Queue=FIFO(줄), Stack=LIFO(쌓기), Deque=양쪽 다. 실무에선 ArrayDeque로 큐·스택을 모두 처리하고, 실패를 부드럽게 다루려면 offer/poll/peek를 쓴다.**
+
+---
+
 ## 1. 학습 내용 — Queue와 Deque
 
 ### Queue = FIFO
