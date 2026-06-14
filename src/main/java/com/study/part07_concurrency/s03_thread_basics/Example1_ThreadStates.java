@@ -42,10 +42,16 @@ public class Example1_ThreadStates {
         System.out.println("start() 전        : " + worker.getState() + "   (생성만 됨)");
 
         worker.start();
-        Thread.sleep(30);  // worker가 CPU 작업 중일 때 샘플
+
+        // ★ 주의: 아래 Thread.sleep은 'worker'가 아니라 '지금 이 코드를 실행하는 main'이 잔다.
+        //   worker를 멈추는 게 아니라, main이 "언제 worker 상태를 관찰할지" 시점을 미루는 타이머일 뿐이다.
+        //   worker의 자체 일정(start 기준):  0~100ms = while 루프(RUNNABLE),  100~400ms = sleep(300)(TIMED_WAITING).
+        //   그래서 main이 관찰하는 두 시점에 worker가 '하고 있는 일'이 달라 상태가 다르게 찍힌다.
+
+        Thread.sleep(30);  // main이 30ms 잠 -> start 후 약 30ms 시점에 관찰: worker는 아직 while 루프 안(RUNNABLE)
         System.out.println("실행 직후 샘플    : " + worker.getState() + " (실행 중)");
 
-        Thread.sleep(200); // worker가 sleep(300) 중일 때 샘플
+        Thread.sleep(200); // main이 200ms 더 잠 -> 누적 약 230ms 시점에 관찰: worker는 루프(100ms)를 끝내고 sleep(300) 중
         System.out.println("sleep 중 샘플     : " + worker.getState() + "  (시간 제한 대기)");
 
         worker.join();     // worker 끝날 때까지 대기
