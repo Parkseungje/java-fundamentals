@@ -46,14 +46,20 @@ public class Example2_ThreadVsRunnable {
         System.out.println();
 
         // ★ start(): 새 스레드 생성 -> 그 위에서 run() 실행
-        System.out.println("(B) new Thread(task).start():");
-        Thread t1 = new Thread(task, "runnable-thread");
+        // 아래 (B)와 (C)는 둘 다 '새 스레드를 만들어 run()을 실행'한다(결과 비슷). 차이는 '할 일을 어디에 두느냐'다.
+        //   (B) Runnable 주입: 할 일(task)은 Thread '밖'에 따로 있고, Thread에 생성자로 건네준다.
+        //       -> Thread는 평범한 Thread, 작업은 별도 Runnable. 역할 분리(스레드 + 할 일 = 2개).
+        //   (C) Thread 상속: 할 일(run)을 Thread 클래스 '안'에 직접 넣었다(MyThread가 run을 오버라이드).
+        //       -> MyThread 객체가 '스레드이자 할 일'을 한 몸에 합친 것.
+        // 비유: (B)는 빈 일꾼(Thread)에게 업무 지시서(Runnable)를 건네는 것, (C)는 일까지 직접 하는 만능 직원.
+        System.out.println("(B) new Thread(task).start()  [Runnable 주입 — 할 일이 Thread 밖]:");
+        Thread t1 = new Thread(task, "runnable-thread"); // task(할 일)를 외부에서 주입
         t1.start();
         t1.join();
 
         System.out.println();
-        System.out.println("(C) Thread 상속 방식 start():");
-        Thread t2 = new MyThread();
+        System.out.println("(C) Thread 상속 방식 start()  [할 일이 Thread 안]:");
+        Thread t2 = new MyThread();      // 할 일(run)이 MyThread 안에 내장됨
         t2.setName("subclass-thread");
         t2.start();
         t2.join();

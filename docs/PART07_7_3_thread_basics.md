@@ -34,6 +34,23 @@
 2. **작업과 실행 수단의 분리** — '무엇을 할지(Runnable)'와 '어떻게 실행할지(Thread/Executor)'를 분리.
 3. **메모리 효율** — 같은 Runnable을 여러 스레드가 공유할 수 있다.
 
+#### 핵심 차이 — "할 일(run의 내용)을 어디에 두느냐"
+둘 다 `start()`하면 새 스레드가 `run()`을 실행한다(결과는 비슷). 다른 건 **할 일을 어디에 두느냐**다.
+- **Thread 상속**: 할 일(run)을 **Thread 클래스 '안'에** 직접 넣는다(오버라이드). 그래서 객체 하나가
+  '스레드이자 할 일'을 겸한다. `Thread t = new MyThread();`
+- **Runnable 주입**: 할 일(task)을 **Thread '밖'에** 따로 두고, 생성자로 건네준다. Thread는 평범한
+  Thread이고 작업은 별도 Runnable이다. `Thread t = new Thread(task);`
+
+| | Thread 상속 (`new MyThread()`) | Runnable 주입 (`new Thread(task)`) |
+|---|---|---|
+| 할 일 위치 | Thread **안**(run 오버라이드) | Thread **밖**(별도 Runnable) |
+| 구성 | 스레드+할 일 한 몸 | 스레드 / 할 일 분리(2개) |
+| 다른 클래스 상속 | ❌ (단일 상속을 Thread에 써버림) | ✅ (Runnable은 인터페이스) |
+| 작업 재사용 | ❌ | ✅ 같은 task를 여러 Thread·ExecutorService에 넘김 |
+
+비유: Runnable 주입 = **빈 일꾼(Thread)에게 업무 지시서(Runnable)를 건넴**. Thread 상속 = **일까지
+직접 하는 만능 직원**(일을 바꾸려면 직원을 새로 만들어야 함). 그래서 유연한 Runnable(+람다/Executor)을 권장한다.
+
 ### ★ start() vs run() (초보자 흔한 실수)
 - **`start()`**: **새 스레드**를 만들어 그 위에서 `run()`을 실행한다.
 - **`run()` 직접 호출**: 새 스레드가 **안 생기고**, 그냥 **현재 스레드(main)에서 메서드 호출**일 뿐이다.
