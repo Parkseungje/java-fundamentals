@@ -5,6 +5,18 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **직렬화(serialization)**: 객체를 '바이트 스트림'으로 변환하는 것(파일 저장·네트워크 전송용). 반대는 **역직렬화(deserialization)** = 바이트→객체.
+- **Serializable**: '이 클래스는 직렬화해도 된다'고 표시하는 **마커 인터페이스**(메서드 없음). 없으면 NotSerializableException.
+- **ObjectOutputStream / ObjectInputStream**: 객체를 직렬화(`writeObject`) / 역직렬화(`readObject`)하는 보조 스트림.
+- **transient**: 직렬화에서 '제외'할 필드에 붙이는 키워드. 복원 시 기본값(null/0). 비밀번호 등 민감정보·임시값에 사용.
+- **serialVersionUID**: 직렬화 데이터의 '버전 식별자'. 클래스 버전이 안 맞으면 InvalidClassException. 운영에선 명시 권장.
+- **JSON 직렬화와의 구분**: 자바 고유 직렬화(Serializable)는 JVM↔JVM 전용이고 웹에선 거의 안 씀. 웹은 보통 JSON(Jackson)을 쓴다.
+
+한 줄 그림: **직렬화는 객체를 바이트로 저장/복원하는 것. transient는 제외, serialVersionUID는 버전 도장이다. 단 자바 고유 직렬화는 JVM끼리만 쓰고, 웹 통신은 JSON을 쓴다.**
+
+---
+
 ## 1. 학습 내용 — 직렬화와 그 주의점
 
 ### 직렬화란

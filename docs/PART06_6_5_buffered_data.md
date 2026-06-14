@@ -5,6 +5,19 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **보조 스트림(decorator stream)**: 단독으론 못 쓰고 '기존 스트림을 감싸서' 기능을 더하는 스트림(데코레이터 패턴).
+- **기반 스트림 vs 보조 스트림**: 실제 소스를 직접 받으면 기반(FileInputStream), 다른 스트림을 감싸면 보조(BufferedInputStream).
+- **Buffered 스트림**: 내부 버퍼(기본 8KB)에 모았다 한 번에 처리 → **시스템 콜 횟수를 줄여 빠름**.
+- **Data 스트림**: 기본 타입(int/double/String)을 타입별 메서드(`writeInt`/`readInt`)로 저장·복원. CSV 파싱 불필요.
+- **try-with-resources**: `try (자원 선언) {}` 문법. 블록을 벗어나면 (예외가 나도) 자동으로 `close()` 호출. 자원 누수 방지.
+- **AutoCloseable**: try-with-resources에 쓸 수 있는 자원이 구현해야 하는 인터페이스(`close()` 보유). 스트림류는 모두 구현돼 있다.
+- **flush()**: 버퍼에 남은 데이터를 강제로 내보내기.
+
+한 줄 그림: **보조 스트림은 기존 스트림을 '감싸서' 기능을 더한다 — Buffered(빠르게)·Data(타입별 저장). 자원은 try-with-resources로 자동 정리한다.**
+
+---
+
 ## 1. 학습 내용 — 자원 정리와 보조 스트림
 
 ### try-with-resources (Java 7+)

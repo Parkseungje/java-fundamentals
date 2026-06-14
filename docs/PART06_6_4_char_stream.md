@@ -5,6 +5,17 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **문자 스트림(character stream)**: '문자(char)' 단위로 읽고 쓰는 통로. `Reader`(읽기)·`Writer`(쓰기). 인코딩을 해석해 한글을 제대로 다룬다.
+- **인코딩/디코딩**: 문자→바이트(인코딩) / 바이트→문자(디코딩). Reader는 디코딩, Writer는 인코딩을 한다.
+- **charset(문자셋)**: 인코딩 규칙의 이름. UTF-8(권장), EUC-KR/MS949(옛 한국어) 등. `StandardCharsets.UTF_8`.
+- **FileReader vs InputStreamReader**: FileReader는 인코딩을 못 정함(플랫폼 기본 charset) / InputStreamReader는 **charset을 명시** 가능(권장).
+- **BufferedReader.readLine()**: 한 줄(String) 단위로 읽는 메서드(끝이면 null). 내부적으로 read()로 문자를 모으다 줄바꿈에서 끊는다.
+
+한 줄 그림: **문자 스트림(Reader/Writer)은 인코딩을 해석해 한글을 깨지지 않게 다룬다. 단 '쓴 인코딩=읽은 인코딩'이 맞아야 하고, 인코딩은 InputStreamReader로 항상 명시(UTF-8)하는 게 안전하다.**
+
+---
+
 ## 1. 학습 내용 — 문자 스트림과 인코딩
 
 ### Reader/Writer = 문자(char) 단위 + 인코딩 해석

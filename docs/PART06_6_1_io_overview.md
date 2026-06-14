@@ -5,6 +5,18 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **I/O(Input/Output)**: 프로그램이 외부(파일·네트워크·키보드·화면)와 데이터를 주고받는 것.
+- **Input ↔ Output**: 항상 **JVM(내 프로그램) 기준**. 외부→JVM = 입력(읽기), JVM→외부 = 출력(쓰기). (`System.out.println`은 JVM→화면이라 Output)
+- **스트림(stream)**: 데이터가 한 줄로 흐르는 통로. 바이트 단위(InputStream/OutputStream) 또는 문자 단위(Reader/Writer)가 있다.
+- **IO(java.io)**: 옛 방식. `File`, 스트림 기반. **NIO(java.nio, Java 4+)**: 채널·버퍼 기반 고성능. **NIO.2(Java 7+)**: `Path`/`Files`로 파일 API 개선.
+- **Path vs File**: 파일 경로를 나타내는 객체 — `Path`(현대, NIO.2) vs `File`(옛). 둘 다 '경로'일 뿐 실제 파일과는 별개.
+- **시스템 콜(system call)**: 앱이 하드웨어(디스크 등)를 만지려고 OS 커널에 보내는 요청(비용이 있어 I/O 성능의 핵심).
+
+한 줄 그림: **I/O는 JVM 기준으로 입력(읽기)/출력(쓰기)으로 나뉘고, API는 IO(java.io)→NIO/NIO.2(java.nio)로 발전했다. 신규 코드는 Path/Files를 권장한다.**
+
+---
+
 ## 1. 학습 내용 — Input/Output의 기준과 I/O API의 진화
 
 ### I/O의 기준점은 JVM
