@@ -51,7 +51,13 @@ public class Example1_CompletableFutureChaining {
         // 호출자는 get()으로 멈추지 않고 바로 다음 일을 한다
         System.out.println("  [main] 안 막히고 다음 일 진행 (체인은 끝나는 대로 콜백 실행)");
 
-        done.await(); // 데모 종료용 대기
+        // ★ done.await()는 '데모용 장치'다(비동기의 일부가 아님). 콜백은 별도 스레드에서 ~200ms 뒤
+        //   실행되는데, 만약 await가 없으면 main이 곧장 끝나 JVM이 종료되어 콜백 출력([1][2][3])을 못 본다.
+        //   그래서 콜백이 countDown 할 때까지 main을 여기서 멈춰 기다린다(이 await 자체는 블로킹).
+        //   '논블로킹'인 부분은 위의 체인 등록이다 -> 그래서 "[main] 안 막히고..."가 [1][2][3]보다 먼저 찍힌다.
+        done.await(); // 콜백 완료까지 대기(데모 종료용)
+
+        // ↓ 아래 두 줄은 'await가 풀린 뒤(= 콜백이 모두 끝난 뒤)'에야 실행된다. 그래서 출력의 맨 마지막에 나온다.
         System.out.println();
         System.out.println("=> supplyAsync로 시작 -> thenApply(변환) -> thenAccept(소비)로 단계를 논블로킹 체이닝.");
         System.out.println("   Future.get()처럼 멈추지 않고, 각 단계는 앞 단계가 끝나는 즉시 자동으로 이어진다.");
