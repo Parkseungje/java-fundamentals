@@ -6,6 +6,18 @@
 
 ---
 
+## 0. 들어가기 전에 — 핵심 용어
+- **G1 GC(Garbage First)**: Java 9+의 기본 GC. Heap을 작은 'Region'들로 나눠, '가비지가 많은 Region부터(garbage first)' 회수해 멈춤 시간을 예측·제어한다.
+- **Region(리전)**: G1이 Heap을 잘게 쪼갠 동일 크기 칸(보통 1~32MB). 각 Region이 그때그때 Eden/Survivor/Old 역할을 맡는다(고정 경계 X).
+- **정지시간 목표(pause time goal, `-XX:MaxGCPauseMillis`)**: "멈춤을 이 정도로 맞춰라"고 G1에 주는 목표값. G1이 회수할 Region 수를 조절해 맞추려 한다.
+- **Humongous 객체**: Region 절반보다 큰 거대 객체. 별도로 특별 관리된다.
+- **Remembered Set / Write Barrier**: "다른 Region이 내 Region을 가리키는 참조"를 추적하는 장치(부분 회수를 가능케 함).
+- **Concurrent Marking**: 앱을 멈추지 않고 살아있는 객체를 표시하는 단계(STW 최소화).
+
+한 줄 그림: **G1은 Heap을 Region들로 쪼개고 '가비지 많은 Region부터' 부분 회수해, 사용자가 정한 멈춤 시간 목표에 맞춘다 — 그래서 큰 서버의 기본 GC가 됐다.**
+
+---
+
 ## 1. 학습 내용 — G1의 Region 모델과 정지시간 예측
 
 ### 등장 배경
