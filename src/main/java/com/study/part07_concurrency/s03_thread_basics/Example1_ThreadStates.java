@@ -29,11 +29,15 @@ public class Example1_ThreadStates {
         System.out.println("[예시 1] 스레드 상태 전이");
         System.out.println();
 
+        // 주의: 아래 'worker'(변수 이름)와 "worker-thread"(스레드의 런타임 이름)는 서로 다른 것이다.
+        //   - worker        : 자바 변수 이름. 내 코드가 이 Thread 객체를 가리킬 때 쓴다(worker.start() 등). 컴파일 타임.
+        //   - "worker-thread": 스레드의 '이름'. 실행 중 Thread.currentThread().getName()이나 스레드 덤프에 찍힌다. 런타임.
+        //   둘은 독립적이라 우연히 같은 단어로 둘 필요가 없다(여기선 구분되게 일부러 다르게 지었다).
         Thread worker = new Thread(() -> {
             long end = System.currentTimeMillis() + 100;
             while (System.currentTimeMillis() < end) { /* CPU 작업(RUNNABLE) */ }
             try { Thread.sleep(300); } catch (InterruptedException ignored) {} // TIMED_WAITING
-        }, "worker");
+        }, "worker-thread");
 
         System.out.println("start() 전        : " + worker.getState() + "   (생성만 됨)");
 
