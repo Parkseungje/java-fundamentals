@@ -22,7 +22,11 @@ public class Example1_Synchronized {
     static class Counter {
         private int count = 0;
 
-        // synchronized 메서드: 이 인스턴스의 모니터 락을 얻어야 진입 -> 한 번에 한 스레드만
+        // synchronized 인스턴스 메서드: 락 대상은 '이 메서드를 호출한 Counter 객체(this)'다.
+        //   - '이 인스턴스' = increment(메서드)가 아니라, 이 메서드를 가진 Counter 객체를 가리킨다.
+        //   - 즉 아래는 사실상 'void increment(){ synchronized(this){ count++; } }' 와 같다.
+        //   - 락은 메서드가 아니라 '객체에 하나' 달려 있다. 그래서 같은 Counter 객체의 synchronized
+        //     메서드들은 이 락 하나를 공유한다(한 객체 = 한 번에 한 스레드). 다른 Counter 객체는 락이 별개.
         synchronized void increment() {
             count++; // 락으로 보호되어 읽기-증가-쓰기가 통째로 원자적
         }
