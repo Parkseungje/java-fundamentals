@@ -108,6 +108,69 @@ try {
 3. 공정성 없음 → **`new ReentrantLock(true)`**: '공정(fair) 락'. 먼저 기다린 스레드가 먼저 얻도록(FIFO)
    보장한다. (대신 약간 느릴 수 있어, 기본값은 비공정.)
 
+#### synchronized vs ReentrantLock — 같은 작업을 코드로 비교
+같은 "count++ 보호"를 두 방식으로 짜 보면 차이가 한눈에 보인다.
+
+```java
+// (1) synchronized — 잠금/해제가 '자동'. 코드가 간결하다.
+class CounterSync {
+    private int count;
+    synchronized void increment() {   // 진입 시 자동 lock, 빠져나갈 때(예외 포함) 자동 unlock
+        count++;
+    }
+}
+
+// (2) ReentrantLock — 잠금/해제를 '직접'. 대신 기능이 많다.
+class CounterLock {
+    private final ReentrantLock lock = new ReentrantLock();
+    private int count;
+    void increment() {
+        lock.lock();              // 직접 잠금
+        try {
+            count++;
+        } finally {
+            lock.unlock();        // 직접 해제 (반드시 finally)
+        }
+    }
+}
+```
+같은 보호 효과지만, **synchronized는 자동/간결**, **ReentrantLock은 수동/장황한 대신 아래 기능을 추가로 쓸 수 있다.**
+
+```java
+// ReentrantLock만 가능한 것들 (synchronized로는 불가)
+
+// (A) 못 얻으면 포기/타임아웃 — synchronized는 무조건 무한 대기
+if (lock.tryLock()) {                          // 즉시 시도, 실패하면 false
+    try { ... } finally { lock.unlock(); }
+} else {
+    // 락을 못 얻었을 때의 대안 처리(포기/재시도/다른 일)
+}
+if (lock.tryLock(500, TimeUnit.MILLISECONDS))  // 0.5초만 기다려보고 포기
+    ...
+
+// (B) 대기 중 인터럽트로 취소 — synchronized는 대기 중 못 깨움
+lock.lockInterruptibly();                      // 기다리는 동안 interrupt 오면 InterruptedException
+
+// (C) 공정 락 — 먼저 기다린 스레드가 먼저 (synchronized는 보장 X)
+ReentrantLock fair = new ReentrantLock(true);
+
+// (D) 여러 대기 줄(Condition) — 생산자/소비자 분리 (7.7)
+Condition notFull = lock.newCondition();
+Condition notEmpty = lock.newCondition();
+```
+
+| 항목 | synchronized | ReentrantLock |
+|---|---|---|
+| 잠금/해제 | 자동(블록 벗어나면 풀림) | 수동(`lock()`/`unlock()`, finally 필수) |
+| 코드 | 간결 | 장황(try-finally) |
+| 못 얻을 때 포기/타임아웃 | ❌ 무한 대기 | ✅ `tryLock()` / `tryLock(시간)` |
+| 대기 중 인터럽트 | ❌ | ✅ `lockInterruptibly()` |
+| 공정성 | ❌ 보장 안 됨 | ✅ `new ReentrantLock(true)` |
+| 조건 대기 줄 | 1개(wait/notify) | 여러 개(`newCondition()`) |
+
+→ **단순 보호면 synchronized**(간결·실수 위험 적음). **타임아웃·인터럽트·공정성·여러 조건 줄이 필요하면
+ReentrantLock**. 둘은 우열이 아니라 용도가 다르다.
+
 ### 1-3. 데드락(교착 상태) — 왜 생기고 어떻게 푸나
 **데드락(deadlock)** = 둘 이상의 스레드가 **서로가 쥔 락을 기다리며 영원히 멈추는** 상황. 전형은
 '락을 잡는 순서가 엇갈릴 때'다.
