@@ -54,9 +54,48 @@ void increment() {
 ```
 
 > ★ 가장 중요한 주의 — **unlock은 반드시 finally에서.** synchronized는 블록을 벗어나면(예외 포함) 락이
-> 자동으로 풀린다. 하지만 ReentrantLock은 내가 직접 `unlock()`을 호출해야 한다. 만약 임계 구역에서
-> 예외가 났는데 unlock이 try 안에 있었다면 그 줄에 도달 못 해 **락이 영영 안 풀리고**, 다른 스레드는
-> 영원히 못 들어간다(사실상 데드락). 그래서 unlock은 항상 finally에 둔다(7.3 try-with-resources의 자원 정리와 같은 사고).
+> 자동으로 풀린다. 하지만 ReentrantLock은 내가 직접 `unlock()`을 호출해야 한다.
+
+##### 왜 try 안에 unlock을 두면 안 되나 — "예외가 나면 그 줄에 도달조차 못 한다"
+포인트는 "unlock이 동작 안 한다"가 아니라 **"unlock 줄에 도달을 못 한다"**이다. 자바는 어떤 줄에서 예외가
+터지면, **그 try 블록의 나머지 줄을 전부 건너뛰고** 예외를 위로 던진다. 그래서 바로 아래에 적은 unlock도
+실행될 기회 없이 통과된다.
+
+```java
+// (틀린 방식) unlock이 try 안에 있음
+lock.lock();
+try {
+    riskyWork();      // ← 여기서 예외 발생!
+    lock.unlock();    // ← 이 줄은 '건너뛰어짐'(도달 못 함) -> 락이 영영 안 풀림
+}
+// 결과: 락이 잡힌 채 남아, 다른 스레드는 영원히 못 들어감(사실상 데드락)
+```
+```java
+// (옳은 방식) unlock을 finally에
+lock.lock();
+try {
+    riskyWork();      // 예외가 나든 안 나든
+} finally {
+    lock.unlock();    // ← finally는 '무조건' 실행 -> 예외에도 락이 풀림
+}
+```
+
+흐름 비교:
+```
+[try 안에 unlock]                 [finally에 unlock]
+ lock()                            lock()
+  ├ riskyWork() → 예외!             ├ try: riskyWork() → 예외!
+  └ unlock() ✗ (건너뜀)            └ finally: unlock() ✓ (예외에도 실행)
+    => 락 안 풀림 (데드락)              => 락 풀림 (안전)
+```
+- **`finally`는 try가 정상 끝나든 예외로 빠져나가든 무조건 실행**되므로, 거기 unlock을 두면 어떤 경우에도 락이 풀린다.
+- **synchronized는 왜 이 걱정이 없나?** JVM이 블록을 벗어나는 순간(정상/예외 무관) 락을 자동으로 풀어주기
+  때문이다 — 즉 "finally에 unlock을 넣은 것"을 언어가 알아서 해준다. ReentrantLock은 그 자동 해제가 없어
+  내가 finally로 직접 보장해야 한다. (7.3 try-with-resources가 close를 자동 보장하는 것과 같은 사고.)
+
+> 비유: 화장실(임계 구역)에 들어가며 문을 잠갔는데(lock) 안에서 넘어졌다(예외). "나가며 문 열기"(unlock)를
+> '넘어진 지점 다음 줄'에 적어놨다면 실려 나가느라 그 줄을 못 한다 → 문이 잠긴 채 아무도 못 들어감.
+> finally는 "어떻게 나가든(걸어서/실려서) 반드시 문을 연다"는 보장이다.
 
 **"Reentrant(재진입 가능)"의 뜻**: 같은 스레드가 **이미 쥔 락을 다시 `lock()` 해도** 된다는 것. JVM이
 획득 횟수를 세어, 그만큼 unlock해야 완전히 풀린다. (synchronized도 재진입 가능하다.) 덕분에 락을 쥔
@@ -148,6 +187,10 @@ synchronized의 한계(무한 대기·인터럽트 불가·불공정)를 **tryLo
 - **Q. ReentrantLock에서 unlock을 finally에 두는 이유는?**
   - 내 답: synchronized와 달리 자동 해제가 없어, 임계 구역에서 예외가 나면 unlock이 호출되지 않아
     락이 영영 안 풀린다(데드락). finally로 정상/예외 모두에서 풀리게 한다. (Example1)
+
+- **Q. unlock이 try '안'에 있으면 왜 실행이 안 되나?**
+  - 내 답: 예외가 나면 자바는 try 블록의 '그 줄 이후를 전부 건너뛰고' 예외를 위로 던진다. 그래서 그
+    아래의 unlock은 도달조차 못 한다. finally는 무조건 실행되므로 거기 둬야 한다. (1-2)
 
 - **Q. 데드락은 왜 생기고 tryLock으로 어떻게 피하나?**
   - 내 답: 두 스레드가 두 락을 엇갈린 순서로 잡고 서로를 기다리면 데드락. tryLock(시간)은 못 얻으면
