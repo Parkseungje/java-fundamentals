@@ -7,8 +7,11 @@ import java.util.concurrent.CompletableFuture;
  *
  * 이 예시가 답하려는 질문: Blocking과 Non-blocking을 가르는 기준은 무엇인가?
  *
- * 왜 이 시나리오인가: Blocking/Non-blocking은 '제어권(control)' 축이다 — 호출한 함수가 일을 끝낼
- * 때까지 제어권을 붙잡고 안 돌려주면 Blocking, 일이 안 끝났어도 제어권을 즉시 돌려주면 Non-blocking이다.
+ * 왜 이 시나리오인가: Blocking/Non-blocking은 '제어권(control)' 축이다. 여기서 제어권 = '다음에
+ * 실행할 코드를 정하는 권한', 곧 실행 흐름 자체다. 함수를 호출하면 제어권이 그 함수로 넘어가고,
+ * 함수가 return하면 호출자에게 돌아온다. 그래서 '제어권을 안 돌려주는 주체'는 '호출당한 함수'다 —
+ * 호출당한 함수가 일을 끝낼 때까지 return을 미뤄 제어권을 안 돌려주면 Blocking, 일이 안 끝났어도
+ * 일단 return해서 제어권을 즉시 돌려주면 Non-blocking이다.
  * 0.5초 걸리는 작업을 두 방식으로 호출해 '호출자(main)가 그동안 다른 일을 할 수 있는가'로 구분한다.
  *   - Blocking: blockingFetch()를 부르면 결과가 나올 때까지 main이 그 줄에서 멈춘다(다른 일 못 함).
  *   - Non-blocking: 호출이 즉시 핸들을 돌려주고 작업은 백그라운드로 진행 -> main은 그동안 다른 일을
