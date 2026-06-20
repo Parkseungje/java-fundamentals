@@ -1,7 +1,8 @@
 # PART 7 — 멀티스레딩과 동시성: 7.3 스레드 만들고 다루기
 
 > 이 문서는 커리큘럼 PART 7의 소단원 중 **7.3 스레드 만들고 다루기**를 다룬다.
-> 스레드 상태, 생성 방법(Thread vs Runnable), start()/run() 차이, 데몬, join을 본다.
+> 스레드 상태, 생성 방법(Thread vs Runnable), start()/run() 차이, 데몬, join, 그리고 멈추기(interrupt)와
+> 양보 힌트(yield)를 본다.
 
 ---
 
@@ -135,6 +136,55 @@ Thread t = new Thread(task);          // Thread에 "이 일 해" 하고 작업�
 - 설정: `thread.setDaemon(true)` — 단, **반드시 `start()` 호출 전에** 해야 한다(시작 후엔 못 바꿈).
 - 비유: 일반 스레드 = 정직원(다 끝나야 회사 문 닫음), 데몬 = 아르바이트(정직원 다 가면 일하던 중에도 같이 퇴근).
 
+### 1-5. 돌고 있는 스레드 멈추기(interrupt)와 양보 힌트(yield)
+스레드를 '만들고 기다리는' 것만큼 중요한 게 '멈추는' 것이다. 그런데 자바엔 **스레드를 강제로 죽이는 안전한
+방법이 없다.**
+
+**왜 강제 종료가 금지됐나 — `stop()`/`suspend()`/`resume()`은 deprecated(사용 금지).**
+- `Thread.stop()`은 스레드를 그 자리에서 즉시 죽인다. 문제는 그 스레드가 **락(7.5)을 쥔 채, 또는 데이터를
+  반쯤 고치다 죽을 수 있다**는 것. 그러면 공유 데이터가 깨진 채 남아 다른 스레드가 오염된 값을 본다.
+- `suspend()`(일시정지)도 락을 쥔 채 멈춰 데드락(7.6)을 유발한다. 그래서 이 셋은 전부 폐기됐다.
+- 결론: 자바는 "남이 강제로 죽이기"가 아니라 **"멈춰달라고 신호를 보내고, 받는 쪽이 스스로 정리하고
+  멈추는"** 방식(= 협력적 취소)을 표준으로 삼는다. 그 신호가 `interrupt()`다.
+
+**`interrupt()` — "이제 그만해 달라"는 신호(협력적 취소).**
+- `worker.interrupt()`는 worker를 죽이지 않는다. 그저 worker에게 **인터럽트 플래그(신호)를 켜는** 것뿐이다.
+- 받는 쪽(worker)이 그 신호를 **확인해야** 멈춘다. 확인 방법 두 가지:
+  - **`Thread.currentThread().isInterrupted()`**: 반복문 조건에서 매 바퀴 "나에게 멈춤 신호 왔나?"를 검사.
+  - **`InterruptedException`**: `sleep`/`wait`/`join`처럼 블로킹 중이면, interrupt가 오는 순간 이 예외가
+    **즉시 터진다**(잠을 깨워 신호를 알림).
+```java
+Thread worker = new Thread(() -> {
+    while (!Thread.currentThread().isInterrupted()) {  // 매 바퀴 신호 확인
+        ... 일 ...
+    }
+    // 신호 감지 -> 빠져나와 스스로 정리하고 종료
+});
+worker.start();
+worker.interrupt();   // 죽이는 게 아니라 "그만해" 신호만 보냄
+```
+> ★ 헷갈리던 것의 정체 — 지금까지 `sleep`을 쓸 때마다 `try { } catch (InterruptedException e)`로 감쌌다.
+> 그 예외가 바로 이것이다. sleep/wait/join이 InterruptedException을 **강제로 처리하게 만든 이유**는,
+> "잠자거나 기다리는 중에도 interrupt 신호를 즉시 받아 깨어나 정리할 수 있게" 하기 위함이다. 즉 블로킹
+> 메서드는 "나 자는 동안 누가 멈추라고 하면 이 예외로 깨워줄게"라고 약속하는 셈이다.
+- 비유: interrupt = 일하는 사람 어깨를 톡톡 두드리며 "이제 그만 정리하자"고 말하는 것. 강제로 끌어내는
+  게 아니라, 본인이 듣고 하던 걸 마무리한 뒤 멈추게 하는 것. (그래서 신호를 무시하는 코드면 안 멈춘다 —
+  받는 쪽이 확인해야 한다.)
+
+**`yield()` — "CPU 좀 양보할게"라는 힌트(강제 아님).**
+- `Thread.yield()`는 현재 스레드가 "지금 CPU를 다른 스레드에 양보하면 좋겠다"고 스케줄러에 **힌트**를 준다.
+- 어디까지나 힌트라 **무시될 수 있고**, 양보 후 곧바로 자기가 다시 뽑힐 수도 있다(순서 보장 없음).
+- `sleep`과 다른 점: sleep은 **정해진 시간 동안 자며**(TIMED_WAITING) 그동안 절대 안 뽑힌다. yield는 **시간
+  지정 없이** 상태가 **RUNNABLE로 유지**되어 즉시 다시 실행 후보가 된다. 즉 "잠"이 아니라 "차례 양보 시도".
+- 실무에선 거의 안 쓴다(스케줄러에 맡기는 게 보통). 동시성 테스트에서 경쟁을 유도하는 정도.
+
+| | `sleep(ms)` | `yield()` | `interrupt()` |
+|---|---|---|---|
+| 하는 일 | 정해진 시간 잠 | CPU 양보 힌트 | 멈춤 '신호' 전송 |
+| 상태 변화 | TIMED_WAITING | RUNNABLE 유지 | (대상이 깨거나 플래그만 켜짐) |
+| 강제성 | 확실히 잔다 | 힌트(무시 가능) | 신호일 뿐(받는 쪽이 확인해야 멈춤) |
+| 주 용도 | 일정 시간 대기 | (거의 안 씀) | 협력적 취소(스레드 멈추기) |
+
 ---
 
 ## 2. 실습으로 확인하기
@@ -142,6 +192,8 @@ Thread t = new Thread(task);          // Thread에 "이 일 해" 하고 작업�
 > - **가설 1**: 스레드는 NEW → RUNNABLE → TIMED_WAITING → TERMINATED로 상태가 전이된다.
 > - **가설 2**: start()는 새 스레드, run() 직접 호출은 현재 스레드(main)에서 실행.
 > - **가설 3**: join은 대상이 끝날 때까지 대기. 데몬은 일반 스레드가 끝나면 작업을 못 마치고 죽는다.
+> - **가설 4**: interrupt는 강제 종료가 아니라 '신호'다 — 받는 쪽이 isInterrupted()/InterruptedException으로
+>   확인해 스스로 멈춘다. yield는 양보 '힌트'라 순서를 보장하지 않는다.
 
 ### 예시 3개 — 각 예시가 답하는 질문
 
@@ -150,6 +202,7 @@ Thread t = new Thread(task);          // Thread에 "이 일 해" 하고 작업�
 | `Example1_ThreadStates` | 상태 전이? | getState() 시점별 출력 |
 | `Example2_ThreadVsRunnable` | start vs run, 권장? | 직접 호출 vs start() 스레드명 |
 | `Example3_DaemonAndJoin` | join, 데몬? | join 대기 + 데몬 강제 종료 |
+| `Example4_InterruptAndYield` | 멈추기? 양보? | interrupt 협력적 취소 + sleep 중 interrupt + yield 힌트 |
 
 ### 실행
 아래 명령은 모두 **프로젝트 루트(`C:\develop\study\java-fundamentals`)에서 실행**한다.
@@ -160,6 +213,7 @@ Thread t = new Thread(task);          // Thread에 "이 일 해" 하고 작업�
 java -cp build/classes/java/main com.study.part07_concurrency.s03_thread_basics.Example1_ThreadStates
 java -cp build/classes/java/main com.study.part07_concurrency.s03_thread_basics.Example2_ThreadVsRunnable
 java -cp build/classes/java/main com.study.part07_concurrency.s03_thread_basics.Example3_DaemonAndJoin
+java -cp build/classes/java/main com.study.part07_concurrency.s03_thread_basics.Example4_InterruptAndYield
 ```
 
 ### 실행 결과 — 가설과 실제 비교
@@ -181,6 +235,11 @@ java -cp build/classes/java/main com.study.part07_concurrency.s03_thread_basics.
 **예시 3 (join/daemon)** — 가설 3.
 - join: worker가 1,2,3을 다 찍을 때까지 main 대기 후 "완료 확인". ✅
 - daemon: 10번 찍으려 했지만 main이 250ms 뒤 끝나자 **3번만 찍고 강제 종료**("완료!" 도달 못 함). ✅
+
+**예시 4 (interrupt/yield)** — 가설 4.
+- (A) interrupt: 무한 루프 counter가 interrupt 신호를 감지하고 **스스로 루프를 빠져나와 종료**. ✅ (stop() 없이 멈춤)
+- (B) sleep 중 interrupt: 10초 자려던 sleeper가 `InterruptedException`으로 **즉시 깨어나 종료**. ✅
+- (C) yield: Y1·Y2가 번갈아 나오는 '경향'은 보이나, 실행마다 순서가 달라질 수 있다(힌트라서). ✅
 
 ### 세 예시를 관통하는 결론
 스레드는 NEW에서 시작해 RUNNABLE·대기 상태를 거쳐 TERMINATED로 끝난다(예시1). 만들 땐 Runnable(인터페이스/
@@ -218,3 +277,16 @@ join은 완료를 기다리는 도구이고, 데몬은 일반 스레드가 끝�
 - **Q. join()은 무엇을 누가 기다리는 것인가?**
   - 내 답: `worker.join()`을 부른 '현재 스레드'가 'worker가 끝날 때까지' 멈춰 기다린다. 새 스레드의
     작업 완료 후 이어서 처리할 때 쓴다. (Example3)
+
+- **Q. 돌고 있는 스레드를 어떻게 멈추나? stop()을 쓰면 안 되는 이유는?**
+  - 내 답: interrupt()로 '멈춰달라'는 신호를 보내고, 받는 쪽이 isInterrupted()나 InterruptedException으로
+    확인해 스스로 정리하고 멈춘다(협력적 취소). stop()은 락을 쥐거나 데이터를 반쯤 고친 채 강제로 죽여
+    데이터가 깨질 수 있어 deprecated다(suspend/resume도 데드락 위험으로 금지). (Example4)
+
+- **Q. sleep/wait/join이 InterruptedException을 강제하는 이유는?**
+  - 내 답: 블로킹(자거나 기다리는) 중에도 interrupt 신호를 즉시 받아 깨어나 정리할 수 있게 하기 위함.
+    interrupt가 오면 그 예외로 즉시 깨어난다. (Example4의 sleeper)
+
+- **Q. yield()와 sleep()의 차이는?**
+  - 내 답: sleep은 정해진 시간 동안 확실히 잔다(TIMED_WAITING). yield는 시간 지정 없이 "CPU 양보하면
+    좋겠다"는 힌트로 상태가 RUNNABLE로 유지되며 곧 다시 뽑힐 수도 있다(무시 가능, 순서 보장 X). (Example4)
